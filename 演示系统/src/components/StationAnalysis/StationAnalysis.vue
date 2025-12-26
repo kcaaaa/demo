@@ -263,7 +263,7 @@ export default {
     return {
       // 筛选条件
       selectedStation: '',
-      dateRange: '',
+      dateRange: [],
       timeGranularity: 'day',
       predictionDays: '7',
       
@@ -305,26 +305,42 @@ export default {
     }
   },
   mounted() {
+    this.selectedStation = 'beijing-south'
+    this.dateRange = this.getDefaultDateRange()
     this.initCharts()
     this.loadAbnormalEnergyData()
-    this.selectedStation = 'beijing-south'
+    this.handleQuery()
   },
   beforeUnmount() {
+    // 移除resize事件监听
+    window.removeEventListener('resize', this.handleWindowResize)
     // 销毁图表实例
     if (this.energyTrendChart) {
       this.energyTrendChart.dispose()
+      this.energyTrendChart = null
     }
     if (this.energyStructureChart) {
       this.energyStructureChart.dispose()
+      this.energyStructureChart = null
     }
     if (this.departmentEnergyChart) {
       this.departmentEnergyChart.dispose()
+      this.departmentEnergyChart = null
     }
     if (this.energyPredictionChart) {
       this.energyPredictionChart.dispose()
+      this.energyPredictionChart = null
     }
   },
   methods: {
+    getDefaultDateRange() {
+      const end = new Date()
+      const start = new Date()
+      start.setDate(end.getDate() - 29)
+      const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      return [fmt(start), fmt(end)]
+    },
+
     // 初始化图表
     initCharts() {
       this.initEnergyTrendChart()
@@ -339,244 +355,25 @@ export default {
     // 初始化能耗趋势图
     initEnergyTrendChart() {
       this.energyTrendChart = echarts.init(this.$refs.energyTrendChart)
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-            label: {
-              backgroundColor: '#6a7985'
-            }
-          }
-        },
-        legend: {
-          data: ['实际能耗', '预测能耗', '历史平均'],
-          top: 10
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-        },
-        yAxis: {
-          type: 'value',
-          name: '能耗(kWh)',
-          axisLabel: {
-            formatter: '{value}'
-          }
-        },
-        series: [
-          {
-            name: '实际能耗',
-            type: 'line',
-            stack: 'Total',
-            areaStyle: {},
-            emphasis: {
-              focus: 'series'
-            },
-            data: [120000, 190000, 360000, 280000, 450000, 320000, 580000, 620000, 480000, 350000, 280000, 220000]
-          },
-          {
-            name: '预测能耗',
-            type: 'line',
-            stack: 'Total',
-            areaStyle: {},
-            emphasis: {
-              focus: 'series'
-            },
-            lineStyle: {
-              type: 'dashed'
-            },
-            data: [null, null, null, null, null, null, null, null, null, null, 290000, 230000]
-          },
-          {
-            name: '历史平均',
-            type: 'line',
-            stack: 'Total',
-            areaStyle: {},
-            emphasis: {
-              focus: 'series'
-            },
-            lineStyle: {
-              type: 'dotted'
-            },
-            data: [180000, 220000, 310000, 290000, 410000, 350000, 520000, 580000, 450000, 330000, 270000, 210000]
-          }
-        ]
-      }
-      this.energyTrendChart.setOption(option)
+      this.updateEnergyTrendChart()
     },
     
     // 初始化能耗结构饼图
     initEnergyStructureChart() {
       this.energyStructureChart = echarts.init(this.$refs.energyStructureChart)
-      const option = {
-        tooltip: {
-          trigger: 'item',
-          formatter: '{b}: {c} kWh ({d}%)'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 10,
-          top: 'center'
-        },
-        series: [
-          {
-            name: '能耗结构',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            avoidLabelOverlap: false,
-            itemStyle: {
-              borderRadius: 10,
-              borderColor: '#fff',
-              borderWidth: 2
-            },
-            label: {
-              show: false,
-              position: 'center'
-            },
-            emphasis: {
-              label: {
-                show: true,
-                fontSize: '18',
-                fontWeight: 'bold'
-              }
-            },
-            labelLine: {
-              show: false
-            },
-            data: [
-              { value: 850000, name: '空调系统' },
-              { value: 520000, name: '照明系统' },
-              { value: 380000, name: '动力系统' },
-              { value: 240000, name: '通风系统' },
-              { value: 150000, name: '其他系统' }
-            ]
-          }
-        ]
-      }
-      this.energyStructureChart.setOption(option)
+      this.updateEnergyStructureChart()
     },
     
     // 初始化部门能耗对比图
     initDepartmentEnergyChart() {
       this.departmentEnergyChart = echarts.init(this.$refs.departmentEnergyChart)
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          }
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'value',
-          name: '能耗(kWh)'
-        },
-        yAxis: {
-          type: 'category',
-          data: ['候车大厅', '售票厅', '办公区', '设备房', '停车场', '站台', '其他区域']
-        },
-        series: [
-          {
-            name: '本月能耗',
-            type: 'bar',
-            stack: 'total',
-            label: {
-              show: true
-            },
-            emphasis: {
-              focus: 'series'
-            },
-            data: [450000, 120000, 230000, 380000, 150000, 180000, 90000]
-          },
-          {
-            name: '上月能耗',
-            type: 'bar',
-            stack: 'total',
-            label: {
-              show: true
-            },
-            emphasis: {
-              focus: 'series'
-            },
-            data: [420000, 110000, 210000, 350000, 140000, 170000, 85000]
-          }
-        ]
-      }
-      this.departmentEnergyChart.setOption(option)
+      this.updateDepartmentEnergyChart()
     },
     
     // 初始化能耗预测图
     initEnergyPredictionChart() {
       this.energyPredictionChart = echarts.init(this.$refs.energyPredictionChart)
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'cross',
-            label: {
-              backgroundColor: '#6a7985'
-            }
-          }
-        },
-        legend: {
-          data: ['实际能耗', '预测能耗'],
-          top: 10
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: ['1月1日', '1月2日', '1月3日', '1月4日', '1月5日', '1月6日', '1月7日', '1月8日', '1月9日', '1月10日', '1月11日', '1月12日', '1月13日', '1月14日', '1月15日']
-        },
-        yAxis: {
-          type: 'value',
-          name: '能耗(kWh)'
-        },
-        series: [
-          {
-            name: '实际能耗',
-            type: 'line',
-            data: [12000, 19000, 36000, 28000, 45000, 32000, 58000],
-            itemStyle: {
-              color: '#409EFF'
-            }
-          },
-          {
-            name: '预测能耗',
-            type: 'line',
-            data: [null, null, null, null, null, null, null, 42000, 38000, 45000, 52000, 48000, 55000, 50000, 47000],
-            lineStyle: {
-              type: 'dashed',
-              color: '#E6A23C'
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(230, 162, 60, 0.5)' },
-                { offset: 1, color: 'rgba(230, 162, 60, 0.1)' }
-              ])
-            }
-          }
-        ]
-      }
-      this.energyPredictionChart.setOption(option)
+      this.updateEnergyPredictionChart()
     },
     
     // 加载异常能耗数据
@@ -635,16 +432,23 @@ export default {
       this.loading = true
       // 模拟查询数据
       setTimeout(() => {
+        this.mockMetricsData()
+        this.updateEnergyTrendChart()
+        this.updateEnergyStructureChart()
+        this.updateDepartmentEnergyChart()
+        this.updateEnergyPredictionChart()
         this.loading = false
-        this.$message.success('查询成功')
-      }, 1000)
+        this.$message.success('查询成功，已更新图表与指标')
+      }, 500)
     },
     
     // 重置筛选条件
     handleReset() {
-      this.selectedStation = ''
-      this.dateRange = ''
+      this.selectedStation = 'beijing-south'
+      this.dateRange = this.getDefaultDateRange()
       this.timeGranularity = 'day'
+      this.predictionDays = '7'
+      this.handleQuery()
       this.$message.info('筛选条件已重置')
     },
     
@@ -673,7 +477,29 @@ export default {
     
     // 导出异常报告
     handleExportAlert() {
-      this.$message.info('导出异常报告功能开发中...')
+      if (!this.abnormalEnergyList || this.abnormalEnergyList.length === 0) {
+        this.$message.info('暂无异常数据可导出')
+        return
+      }
+      const headers = ['时间', '能耗值(kWh)', '预期值(kWh)', '偏差率(%)', '异常原因']
+      const rows = this.abnormalEnergyList.map(item => [
+        item.time,
+        item.energyValue,
+        item.expectedValue,
+        item.deviation,
+        item.reason
+      ])
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(col => `"${String(col).replace(/"/g, '""')}"`).join(','))
+        .join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `异常能耗报告-${this.selectedStation || '全部站点'}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+      this.$message.success('异常能耗报告已导出（CSV）')
     },
     
     // 分页处理
@@ -700,6 +526,154 @@ export default {
       if (this.energyPredictionChart) {
         this.energyPredictionChart.resize()
       }
+    },
+
+    mockMetricsData() {
+      const base = this.selectedStation ? this.selectedStation.length * 120000 : 1800000
+      const factorMap = { day: 0.9, week: 0.6, month: 1.1, year: 14 }
+      const factor = factorMap[this.timeGranularity] || 1
+      const rand = (min, max) => Math.round(min + (max - min) * Math.random())
+
+      const total = Math.round(base * factor + rand(-80000, 80000))
+      const unit = (120 + Math.random() * 20).toFixed(2)
+      const cost = Math.round(total * 0.08 * (0.9 + Math.random() * 0.2) * 100) / 100
+      const efficiency = (82 + Math.random() * 5).toFixed(1)
+
+      this.totalEnergy = total.toLocaleString()
+      this.unitAreaEnergy = unit
+      this.energyCost = cost.toLocaleString()
+      this.energyEfficiency = efficiency
+
+      this.energyTrend = { yoy: (2 + Math.random() * 4).toFixed(1), mom: (-3 + Math.random() * 2).toFixed(1) }
+      this.unitAreaTrend = { yoy: (2 + Math.random() * 3).toFixed(1), mom: (1 + Math.random() * 2).toFixed(1) }
+      this.costTrend = { yoy: (5 + Math.random() * 4).toFixed(1), mom: (-2 + Math.random() * 3).toFixed(1) }
+      this.efficiencyTrend = { yoy: (2 + Math.random() * 2).toFixed(1), mom: (1 + Math.random() * 1.5).toFixed(1) }
+    },
+
+    buildTrendData() {
+      const granularity = this.timeGranularity
+      let x = []
+      const makeArr = (n, base) => Array.from({ length: n }, () => Math.round(base * (0.8 + Math.random() * 0.4)))
+
+      if (granularity === 'day') {
+        x = Array.from({ length: 30 }, (_, i) => `${i + 1}日`)
+      } else if (granularity === 'week') {
+        x = ['第1周', '第2周', '第3周', '第4周', '第5周']
+      } else if (granularity === 'month') {
+        x = Array.from({ length: 12 }, (_, i) => `${i + 1}月`)
+      } else {
+        x = Array.from({ length: 5 }, (_, i) => `${2020 + i}年`)
+      }
+      const base = 150000 * (granularity === 'day' ? 0.3 : granularity === 'week' ? 0.9 : granularity === 'year' ? 15 : 2.2)
+      const actual = makeArr(x.length, base)
+      const forecast = makeArr(x.length, base * 0.95)
+      const avg = makeArr(x.length, base * 0.85)
+      return { x, actual, forecast, avg }
+    },
+
+    updateEnergyTrendChart() {
+      if (!this.energyTrendChart) return
+      const { x, actual, forecast, avg } = this.buildTrendData()
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } }
+        },
+        legend: { data: ['实际能耗', '预测能耗', '历史平均'], top: 10 },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: x },
+        yAxis: { type: 'value', name: '能耗(kWh)' },
+        series: [
+          { name: '实际能耗', type: 'line', areaStyle: {}, data: actual },
+          { name: '预测能耗', type: 'line', areaStyle: {}, lineStyle: { type: 'dashed' }, data: forecast },
+          { name: '历史平均', type: 'line', areaStyle: {}, lineStyle: { type: 'dotted' }, data: avg }
+        ]
+      }
+      this.energyTrendChart.setOption(option, true)
+    },
+
+    updateEnergyStructureChart() {
+      if (!this.energyStructureChart) return
+      const total = 100
+      const ac = 35 + Math.random() * 5
+      const light = 22 + Math.random() * 4
+      const vent = 15 + Math.random() * 3
+      const power = 12 + Math.random() * 3
+      const other = total - ac - light - vent - power
+      const option = {
+        tooltip: { trigger: 'item', formatter: '{b}: {c} kWh ({d}%)' },
+        legend: { orient: 'vertical', left: 10, top: 'center' },
+        series: [
+          {
+            name: '能耗结构',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+            label: { show: false, position: 'center' },
+            emphasis: { label: { show: true, fontSize: '18', fontWeight: 'bold' } },
+            labelLine: { show: false },
+            data: [
+              { value: Math.round(ac * 10000), name: '空调系统' },
+              { value: Math.round(light * 10000), name: '照明系统' },
+              { value: Math.round(vent * 10000), name: '动力系统' },
+              { value: Math.round(power * 10000), name: '通风系统' },
+              { value: Math.round(other * 10000), name: '其他系统' }
+            ]
+          }
+        ]
+      }
+      this.energyStructureChart.setOption(option, true)
+    },
+
+    updateDepartmentEnergyChart() {
+      if (!this.departmentEnergyChart) return
+      const sections = ['候车大厅', '售票厅', '办公区', '设备房', '停车场', '站台', '其他区域']
+      const randVal = () => 80000 + Math.random() * 400000
+      const current = sections.map(() => Math.round(randVal()))
+      const last = current.map(v => Math.round(v * (0.85 + Math.random() * 0.2)))
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'value', name: '能耗(kWh)' },
+        yAxis: { type: 'category', data: sections },
+        series: [
+          { name: '本期能耗', type: 'bar', stack: 'total', label: { show: true }, data: current },
+          { name: '对比期能耗', type: 'bar', stack: 'total', label: { show: true }, data: last }
+        ]
+      }
+      this.departmentEnergyChart.setOption(option, true)
+    },
+
+    updateEnergyPredictionChart() {
+      if (!this.energyPredictionChart) return
+      const days = Number(this.predictionDays) || 7
+      const labels = Array.from({ length: days }, (_, i) => `未来${i + 1}天`)
+      const actual = Array.from({ length: Math.max(3, Math.floor(days / 2)) }, () => Math.round(20000 + Math.random() * 30000))
+      const forecast = Array.from({ length: days }, (_, i) => Math.round(21000 + Math.random() * 25000 + i * 300))
+      const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
+        legend: { data: ['实际能耗', '预测能耗'], top: 10 },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: { type: 'category', boundaryGap: false, data: labels },
+        yAxis: { type: 'value', name: '能耗(kWh)' },
+        series: [
+          { name: '实际能耗', type: 'line', data: actual.concat(Array(Math.max(0, days - actual.length)).fill(null)), itemStyle: { color: '#409EFF' } },
+          {
+            name: '预测能耗',
+            type: 'line',
+            data: forecast,
+            lineStyle: { type: 'dashed', color: '#E6A23C' },
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(230, 162, 60, 0.5)' },
+                { offset: 1, color: 'rgba(230, 162, 60, 0.1)' }
+              ])
+            }
+          }
+        ]
+      }
+      this.energyPredictionChart.setOption(option, true)
     }
   }
 }

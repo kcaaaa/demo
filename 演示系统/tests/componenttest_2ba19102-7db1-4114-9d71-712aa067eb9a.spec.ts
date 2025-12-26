@@ -20,7 +20,7 @@ test('ComponentTest_2025-12-23', async ({ page, context }) => {
     await page.screenshot({ path: 'station_analysis_page.png', { fullPage: true } });
 
     // Click element
-    await page.click('//li[@class='el-menu-item'][contains(.,'能耗分析预警系统')]');
+    await page.click('//li[@class='el-menu-item'][contains(.,'能耗分析预警')]');
 
     // Take screenshot
     await page.screenshot({ path: 'energy_alert_page.png', { fullPage: true } });

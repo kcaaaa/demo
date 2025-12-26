@@ -1,241 +1,308 @@
 <template>
   <div class="energy-strategy-container">
-    <!-- 页面标题 -->
     <el-card shadow="hover" class="page-header">
-      <h1 class="page-title">
-        <i class="fa fa-lightbulb-o"></i> 节能策略模拟
-      </h1>
-      <p class="page-subtitle">模拟不同节能策略的实施效果，评估节能潜力和经济效益</p>
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="page-title">
+            <i class="fa fa-lightbulb-o"></i> 节能策略模拟系统
+          </h1>
+          <p class="page-subtitle">智能推荐 · 组合优化 · 实时仿真 · 效果评估</p>
+        </div>
+        <div class="header-right">
+          <el-tag type="success" size="small">
+            <i class="fa fa-check-circle"></i> 系统正常运行
+          </el-tag>
+        </div>
+      </div>
     </el-card>
 
-    <!-- 策略选择与参数设置 -->
-    <el-card shadow="hover" class="strategy-card">
+    <el-card shadow="hover" class="system-status-card">
       <div slot="header" class="card-header">
-        <h3 class="card-title">
-          <i class="fa fa-sliders"></i> 策略选择与参数设置
-        </h3>
+        <span><i class="fa fa-server"></i> 系统状态监控</span>
       </div>
-      <div class="strategy-content">
-        <el-row :gutter="20">
-          <el-col :xs="24" :md="12">
-            <div class="strategy-section">
-              <h4 class="section-title">站点与时间选择</h4>
-              <el-form :model="formData" label-position="left" label-width="120px">
-                <el-form-item label="目标站点">
-                  <el-select v-model="formData.station" placeholder="请选择站点" style="width: 100%">
-                    <el-option 
-                      v-for="station in stationOptions" 
-                      :key="station.value" 
-                      :label="station.label" 
-                      :value="station.value"
-                    />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="模拟时间范围">
-                  <el-date-picker
-                    v-model="formData.dateRange"
-                    type="daterange"
-                    range-separator="至"
-                    start-placeholder="开始日期"
-                    end-placeholder="结束日期"
-                    style="width: 100%"
-                  />
-                </el-form-item>
-              </el-form>
-            </div>
-          </el-col>
-          <el-col :xs="24" :md="12">
-            <div class="strategy-section">
-              <h4 class="section-title">节能策略组合</h4>
-              <el-checkbox-group v-model="formData.selectedStrategies" class="strategy-checkboxes">
-                <el-checkbox :label="'lighting'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">照明系统优化</h5>
-                    <p class="checkbox-desc">更换LED灯具，安装感应控制系统</p>
-                  </div>
-                </el-checkbox>
-                <el-checkbox :label="'airConditioning'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">空调系统改造</h5>
-                    <p class="checkbox-desc">使用变频技术，优化温度设置</p>
-                  </div>
-                </el-checkbox>
-                <el-checkbox :label="'ventilation'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">通风系统优化</h5>
-                    <p class="checkbox-desc">安装CO2传感器，按需通风</p>
-                  </div>
-                </el-checkbox>
-                <el-checkbox :label="'renewableEnergy'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">可再生能源应用</h5>
-                    <p class="checkbox-desc">安装太阳能光伏系统</p>
-                  </div>
-                </el-checkbox>
-                <el-checkbox :label="'energyStorage'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">能源存储系统</h5>
-                    <p class="checkbox-desc">配置电池储能，峰谷电价套利</p>
-                  </div>
-                </el-checkbox>
-                <el-checkbox :label="'smartControl'">
-                  <div class="checkbox-content">
-                    <h5 class="checkbox-title">智能控制系统</h5>
-                    <p class="checkbox-desc">AI优化能源调度，实时监控</p>
-                  </div>
-                </el-checkbox>
-              </el-checkbox-group>
-            </div>
-          </el-col>
-        </el-row>
-        <div class="strategy-actions">
-          <el-button type="primary" @click="handleSimulate" :loading="simulating">
-            <i class="fa fa-play"></i> 开始模拟
-          </el-button>
-          <el-button @click="handleReset">
-            <i class="fa fa-refresh"></i> 重置
-          </el-button>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 模拟结果展示 -->
-    <div v-if="simulationResults" class="results-container">
-      <!-- 节能效果概览 -->
-      <el-card shadow="hover" class="results-card">
-        <div slot="header" class="card-header">
-          <h3 class="card-title">
-            <i class="fa fa-bar-chart"></i> 节能效果概览
-          </h3>
-        </div>
-        <el-row :gutter="20" class="results-metrics">
-          <el-col :xs="24" :sm="12" :md="6">
-            <div class="metric-item">
-              <h4 class="metric-name">预计节能量</h4>
-              <div class="metric-value">
-                <span class="value-number">{{ simulationResults.expectedSavings }}</span>
-                <span class="value-unit">kWh</span>
-              </div>
-              <div class="metric-desc">策略实施后的预计节能量</div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="6">
-            <div class="metric-item">
-              <h4 class="metric-name">节能率</h4>
-              <div class="metric-value">
-                <span class="value-number">{{ simulationResults.savingsRate }}</span>
-                <span class="value-unit">%</span>
-              </div>
-              <div class="metric-desc">相比基准能耗的节能比例</div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="6">
-            <div class="metric-item">
-              <h4 class="metric-name">预计收益</h4>
-              <div class="metric-value">
-                <span class="value-number">¥{{ simulationResults.expectedRevenue }}</span>
-              </div>
-              <div class="metric-desc">按当前电价计算的年收益</div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="6">
-            <div class="metric-item">
-              <h4 class="metric-name">投资回收期</h4>
-              <div class="metric-value">
-                <span class="value-number">{{ simulationResults.paybackPeriod }}</span>
-                <span class="value-unit">年</span>
-              </div>
-              <div class="metric-desc">策略实施的投资回收周期</div>
-            </div>
-          </el-col>
-        </el-row>
-      </el-card>
-
-      <!-- 模拟结果图表 -->
       <el-row :gutter="20">
-        <el-col :xs="24" :md="12">
-          <el-card shadow="hover" class="chart-card">
-            <div slot="header" class="card-header">
-              <h3 class="card-title">能耗对比分析</h3>
+        <el-col :xs="24" :sm="12" :md="6">
+          <div class="status-item">
+            <div class="status-icon success">
+              <i class="fa fa-check-circle"></i>
             </div>
-            <div class="chart-container">
-              <div ref="energyComparisonChart" class="chart"></div>
+            <div class="status-info">
+              <div class="status-value">运行正常</div>
+              <div class="status-label">模拟引擎</div>
             </div>
-          </el-card>
+          </div>
         </el-col>
-        <el-col :xs="24" :md="12">
-          <el-card shadow="hover" class="chart-card">
-            <div slot="header" class="card-header">
-              <h3 class="card-title">策略节能贡献分布</h3>
+        <el-col :xs="24" :sm="12" :md="6">
+          <div class="status-item">
+            <div class="status-icon primary">
+              <i class="fa fa-database"></i>
             </div>
-            <div class="chart-container">
-              <div ref="strategyContributionChart" class="chart"></div>
+            <div class="status-info">
+              <div class="status-value">{{ dataCount }}</div>
+              <div class="status-label">策略模板数</div>
             </div>
-          </el-card>
+          </div>
+        </el-col>
+        <el-col :xs="24" :sm="12" :md="6">
+          <div class="status-item">
+            <div class="status-icon warning">
+              <i class="fa fa-history"></i>
+            </div>
+            <div class="status-info">
+              <div class="status-value">{{ historyCount }}</div>
+              <div class="status-label">历史记录数</div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :xs="24" :sm="12" :md="6">
+          <div class="status-item">
+            <div class="status-icon info">
+              <i class="fa fa-calendar"></i>
+            </div>
+            <div class="status-info">
+              <div class="status-value">{{ lastUpdate }}</div>
+              <div class="status-label">最后更新</div>
+            </div>
+          </div>
         </el-col>
       </el-row>
+    </el-card>
 
-      <!-- 策略效果详情 -->
-      <el-card shadow="hover" class="details-card">
-        <div slot="header" class="card-header">
-          <h3 class="card-title">策略效果详情</h3>
-        </div>
-        <el-table :data="strategyDetails" stripe style="width: 100%">
-          <el-table-column prop="name" label="策略名称" width="200" />
-          <el-table-column prop="savings" label="节能量(kWh)" width="150" />
-          <el-table-column prop="savingsRate" label="节能率(%)" width="120">
-            <template slot-scope="scope">
-              <el-progress :percentage="scope.row.savingsRate" :stroke-width="6" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="investment" label="投资成本(元)" width="150" />
-          <el-table-column prop="annualRevenue" label="年收益(元)" width="150" />
-          <el-table-column prop="paybackPeriod" label="回收期(年)" width="120" />
-          <el-table-column prop="description" label="策略描述" />
-        </el-table>
-      </el-card>
-
-      <!-- 实施建议 -->
-      <el-card shadow="hover" class="recommendation-card">
-        <div slot="header" class="card-header">
-          <h3 class="card-title">
-            <i class="fa fa-lightbulb-o"></i> 实施建议
-          </h3>
-        </div>
-        <div class="recommendation-content">
-          <el-timeline>
-            <el-timeline-item
-              v-for="(item, index) in recommendations"
-              :key="index"
-              :timestamp="item.timestamp"
-              placement="top"
-            >
-              <el-card shadow="hover">
-                <h4 class="recommendation-title">{{ item.title }}</h4>
-                <p class="recommendation-desc">{{ item.content }}</p>
-              </el-card>
-            </el-timeline-item>
-          </el-timeline>
-        </div>
-      </el-card>
-    </div>
+    <el-card shadow="hover" class="navigation-card">
+      <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
+        <el-tab-pane label="策略推荐" name="recommendation">
+          <span slot="label">
+            <i class="fa fa-lightbulb-o"></i> 策略推荐
+          </span>
+          <StrategyRecommendation />
+        </el-tab-pane>
+        <el-tab-pane label="模板管理" name="template">
+          <span slot="label">
+            <i class="fa fa-folder-open"></i> 模板管理
+          </span>
+          <StrategyTemplate />
+        </el-tab-pane>
+        <el-tab-pane label="策略组合" name="combination">
+          <span slot="label">
+            <i class="fa fa-cubes"></i> 策略组合
+          </span>
+          <MultiStrategyCombination @strategy-change="handleStrategyChange" />
+        </el-tab-pane>
+        <el-tab-pane label="实时模拟" name="simulation">
+          <span slot="label">
+            <i class="fa fa-clock-o"></i> 实时模拟
+          </span>
+          <RealTimeSimulation />
+        </el-tab-pane>
+        <el-tab-pane label="历史记录" name="history">
+          <span slot="label">
+            <i class="fa fa-history"></i> 历史记录
+          </span>
+          <StrategyHistory />
+        </el-tab-pane>
+        <el-tab-pane label="快速模拟" name="quick">
+          <span slot="label">
+            <i class="fa fa-rocket"></i> 快速模拟
+          </span>
+          <div class="quick-simulation-container">
+            <el-row :gutter="20">
+              <el-col :xs="24" :lg="16">
+                <el-card shadow="hover">
+                  <div slot="header" class="card-header">
+                    <span><i class="fa fa-sliders"></i> 快速模拟设置</span>
+                  </div>
+                  <el-form :model="quickForm" label-width="100px" size="small">
+                    <el-row :gutter="20">
+                      <el-col :xs="24" :sm="12">
+                        <el-form-item label="目标站点">
+                          <el-select v-model="quickForm.station" placeholder="请选择站点" style="width: 100%;">
+                            <el-option v-for="station in stationOptions" :key="station.value" :label="station.label" :value="station.value" />
+                          </el-select>
+                        </el-form-item>
+                      </el-col>
+                      <el-col :xs="24" :sm="12">
+                        <el-form-item label="模拟周期">
+                          <el-select v-model="quickForm.period" placeholder="请选择模拟周期" style="width: 100%;">
+                            <el-option label="日模拟" value="day" />
+                            <el-option label="周模拟" value="week" />
+                            <el-option label="月模拟" value="month" />
+                            <el-option label="年模拟" value="year" />
+                          </el-select>
+                        </el-form-item>
+                      </el-col>
+                    </el-row>
+                    <el-form-item label="选择策略">
+                      <el-checkbox-group v-model="quickForm.strategies">
+                        <el-checkbox label="lighting">
+                          <i class="fa fa-lightbulb-o"></i> 照明优化
+                        </el-checkbox>
+                        <el-checkbox label="airConditioning">
+                          <i class="fa fa-snowflake-o"></i> 空调改造
+                        </el-checkbox>
+                        <el-checkbox label="ventilation">
+                          <i class="fa fa-wind"></i> 通风优化
+                        </el-checkbox>
+                        <el-checkbox label="renewableEnergy">
+                          <i class="fa fa-solar-panel"></i> 光伏系统
+                        </el-checkbox>
+                        <el-checkbox label="energyStorage">
+                          <i class="fa fa-battery-half"></i> 储能系统
+                        </el-checkbox>
+                        <el-checkbox label="smartControl">
+                          <i class="fa fa-microchip"></i> 智能控制
+                        </el-checkbox>
+                      </el-checkbox-group>
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button type="primary" @click="handleQuickSimulate" :loading="quickSimulating">
+                        <i class="fa fa-play"></i> 开始模拟
+                      </el-button>
+                      <el-button @click="handleQuickReset">
+                        <i class="fa fa-refresh"></i> 重置
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-card>
+              </el-col>
+              <el-col :xs="24" :lg="8">
+                <el-card shadow="hover" class="quick-stats-card">
+                  <div slot="header" class="card-header">
+                    <span><i class="fa fa-chart-bar"></i> 模拟统计</span>
+                  </div>
+                  <div class="stats-content">
+                    <div class="stat-item">
+                      <div class="stat-icon lighting">
+                        <i class="fa fa-lightbulb-o"></i>
+                      </div>
+                      <div class="stat-info">
+                        <div class="stat-value">{{ quickStats.lightingSavings }}%</div>
+                        <div class="stat-label">照明节能率</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon airConditioning">
+                        <i class="fa fa-snowflake-o"></i>
+                      </div>
+                      <div class="stat-info">
+                        <div class="stat-value">{{ quickStats.acSavings }}%</div>
+                        <div class="stat-label">空调节能率</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon total">
+                        <i class="fa fa-bolt"></i>
+                      </div>
+                      <div class="stat-info">
+                        <div class="stat-value">{{ quickStats.totalSavings }}%</div>
+                        <div class="stat-label">总节能率</div>
+                      </div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-icon investment">
+                        <i class="fa fa-yen"></i>
+                      </div>
+                      <div class="stat-info">
+                        <div class="stat-value">¥{{ quickStats.investment }}</div>
+                        <div class="stat-label">预估投资(万)</div>
+                      </div>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+            <el-row v-if="quickResults" :gutter="20" style="margin-top: 20px;">
+              <el-col :xs="24">
+                <el-card shadow="hover">
+                  <div slot="header" class="card-header">
+                    <span><i class="fa fa-chart-line"></i> 模拟结果</span>
+                    <el-button type="primary" size="small" @click="handleSaveToHistory">
+                      <i class="fa fa-save"></i> 保存到历史
+                    </el-button>
+                  </div>
+                  <el-row :gutter="20">
+                    <el-col :xs="24" :sm="12" :md="6">
+                      <div class="result-card highlight">
+                        <div class="result-icon">
+                          <i class="fa fa-piggy-bank"></i>
+                        </div>
+                        <div class="result-value">{{ quickResults.savings }}万</div>
+                        <div class="result-label">年节约能耗</div>
+                      </div>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="6">
+                      <div class="result-card success">
+                        <div class="result-icon">
+                          <i class="fa fa-percentage"></i>
+                        </div>
+                        <div class="result-value">{{ quickResults.savingsRate }}%</div>
+                        <div class="result-label">节能率</div>
+                      </div>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="6">
+                      <div class="result-card info">
+                        <div class="result-icon">
+                          <i class="fa fa-clock"></i>
+                        </div>
+                        <div class="result-value">{{ quickResults.paybackPeriod }}年</div>
+                        <div class="result-label">投资回收期</div>
+                      </div>
+                    </el-col>
+                    <el-col :xs="24" :sm="12" :md="6">
+                      <div class="result-card warning">
+                        <div class="result-icon">
+                          <i class="fa fa-leaf"></i>
+                        </div>
+                        <div class="result-value">{{ quickResults.co2Reduction }}吨</div>
+                        <div class="result-label">年减排CO₂</div>
+                      </div>
+                    </el-col>
+                  </el-row>
+                  <div class="chart-section">
+                    <div ref="quickChart" class="chart-container"></div>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts'
+import StrategyRecommendation from './components/StrategyRecommendation.vue'
+import StrategyTemplate from './components/StrategyTemplate.vue'
+import MultiStrategyCombination from './components/MultiStrategyCombination.vue'
+import RealTimeSimulation from './components/RealTimeSimulation.vue'
+import StrategyHistory from './components/StrategyHistory.vue'
 
 export default {
   name: 'EnergyStrategy',
+  components: {
+    StrategyRecommendation,
+    StrategyTemplate,
+    MultiStrategyCombination,
+    RealTimeSimulation,
+    StrategyHistory
+  },
   data() {
     return {
-      // 表单数据
-      formData: {
+      activeTab: 'recommendation',
+      quickForm: {
         station: 'BJ',
-        dateRange: [new Date('2024-01-01'), new Date('2024-12-31')],
-        selectedStrategies: ['lighting', 'airConditioning', 'smartControl']
+        period: 'year',
+        strategies: ['lighting', 'airConditioning', 'smartControl']
       },
-      // 站点选项
+      quickSimulating: false,
+      quickResults: null,
+      quickStats: {
+        lightingSavings: 5.2,
+        acSavings: 8.5,
+        totalSavings: 15.3,
+        investment: 580
+      },
       stationOptions: [
         { label: '北京南站', value: 'BJ' },
         { label: '上海虹桥站', value: 'SH' },
@@ -244,279 +311,176 @@ export default {
         { label: '杭州东站', value: 'HZ' },
         { label: '成都东站', value: 'CD' }
       ],
-      // 模拟状态
-      simulating: false,
-      // 模拟结果
-      simulationResults: null,
-      // 图表实例
-      energyComparisonChart: null,
-      strategyContributionChart: null
+      dataCount: 48,
+      historyCount: 156,
+      lastUpdate: '2024-12-26',
+      quickChart: null,
+      resizeHandler: null
     }
   },
-  computed: {
-    // 策略详情数据
-    strategyDetails() {
-      if (!this.simulationResults) return []
-      return this.simulationResults.strategyDetails
-    },
-    // 实施建议
-    recommendations() {
-      if (!this.simulationResults) return []
-      return this.simulationResults.recommendations
+  beforeUnmount() {
+    if (this.quickChart) {
+      this.quickChart.dispose();
+      this.quickChart = null;
+    }
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
+    }
+  },
+  beforeDestroy() {
+    if (this.quickChart) {
+      this.quickChart.dispose();
+      this.quickChart = null;
+    }
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler);
+      this.resizeHandler = null;
     }
   },
   mounted() {
-    // 初始化默认模拟
-    this.handleSimulate()
+    this.initQuickChart()
   },
   beforeDestroy() {
-    // 销毁图表实例
-    if (this.energyComparisonChart) {
-      this.energyComparisonChart.dispose()
-    }
-    if (this.strategyContributionChart) {
-      this.strategyContributionChart.dispose()
+    if (this.quickChart) {
+      this.quickChart.dispose()
     }
   },
   methods: {
-    // 开始模拟
-    handleSimulate() {
-      this.simulating = true
-      // 模拟API请求延迟
+    handleTabClick(tab) {
+      if (tab.name === 'simulation') {
+        this.$nextTick(() => {
+          this.$emit('tab-change', 'simulation')
+        })
+      }
+    },
+    handleStrategyChange(strategies) {
+      console.log('策略组合变化:', strategies)
+    },
+    handleQuickSimulate() {
+      this.quickSimulating = true
       setTimeout(() => {
-        this.generateSimulationResults()
-        this.simulating = false
+        const selectedCount = this.quickForm.strategies.length
+        const baseSavings = 12 + (selectedCount - 1) * 3
+        const savingsVariation = Math.random() * 5
+        const totalSavings = (baseSavings + savingsVariation).toFixed(1)
+        const investment = selectedCount * 150 + Math.floor(Math.random() * 100)
+
+        this.quickResults = {
+          savings: (120 + selectedCount * 40).toFixed(0),
+          savingsRate: totalSavings,
+          paybackPeriod: (2 + Math.random() * 2).toFixed(1),
+          co2Reduction: (80 + selectedCount * 25).toFixed(0)
+        }
+
+        this.quickStats = {
+          lightingSavings: (4 + Math.random() * 2).toFixed(1),
+          acSavings: (7 + Math.random() * 3).toFixed(1),
+          totalSavings: parseFloat(totalSavings),
+          investment: investment
+        }
+
+        this.updateQuickChart()
+        this.quickSimulating = false
+        this.$message.success('模拟完成！')
       }, 1500)
     },
-    // 重置表单
-    handleReset() {
-      this.formData = {
+    handleQuickReset() {
+      this.quickForm = {
         station: 'BJ',
-        dateRange: [new Date('2024-01-01'), new Date('2024-12-31')],
-        selectedStrategies: ['lighting', 'airConditioning', 'smartControl']
+        period: 'year',
+        strategies: ['lighting', 'airConditioning', 'smartControl']
       }
-      this.simulationResults = null
-      // 销毁图表
-      if (this.energyComparisonChart) {
-        this.energyComparisonChart.dispose()
-        this.energyComparisonChart = null
+      this.quickResults = null
+      this.quickStats = {
+        lightingSavings: 5.2,
+        acSavings: 8.5,
+        totalSavings: 15.3,
+        investment: 580
       }
-      if (this.strategyContributionChart) {
-        this.strategyContributionChart.dispose()
-        this.strategyContributionChart = null
-      }
+      this.$message.info('已重置')
     },
-    // 生成模拟结果
-    generateSimulationResults() {
-      // 根据选择的策略生成模拟结果
-      const baseEnergyConsumption = this.getBaseEnergyConsumption()
-      const selectedStrategies = this.formData.selectedStrategies
-      
-      // 计算各策略的节能效果
-      const strategyEffects = {
-        lighting: { savings: 800000, investment: 1200000, savingsRate: 5, name: '照明系统优化', description: '更换LED灯具，安装感应控制系统' },
-        airConditioning: { savings: 1500000, investment: 2800000, savingsRate: 9, name: '空调系统改造', description: '使用变频技术，优化温度设置' },
-        ventilation: { savings: 600000, investment: 900000, savingsRate: 3.5, name: '通风系统优化', description: '安装CO2传感器，按需通风' },
-        renewableEnergy: { savings: 2000000, investment: 8500000, savingsRate: 12, name: '可再生能源应用', description: '安装太阳能光伏系统' },
-        energyStorage: { savings: 1200000, investment: 5200000, savingsRate: 7, name: '能源存储系统', description: '配置电池储能，峰谷电价套利' },
-        smartControl: { savings: 900000, investment: 1800000, savingsRate: 5.5, name: '智能控制系统', description: 'AI优化能源调度，实时监控' }
+    handleSaveToHistory() {
+      if (!this.quickResults) {
+        this.$message.warning('请先完成模拟')
+        return
       }
-      
-      // 计算总节能效果
-      let totalSavings = 0
-      let totalInvestment = 0
-      const selectedEffects = []
-      
-      selectedStrategies.forEach(strategyKey => {
-        const effect = strategyEffects[strategyKey]
-        totalSavings += effect.savings
-        totalInvestment += effect.investment
-        // 计算年收益（按0.8元/kWh计算）
-        const annualRevenue = Math.round(effect.savings * 0.8)
-        // 计算回收期
-        const paybackPeriod = (effect.investment / annualRevenue).toFixed(1)
-        selectedEffects.push({
-          ...effect,
-          annualRevenue,
-          paybackPeriod
-        })
-      })
-      
-      const savingsRate = ((totalSavings / baseEnergyConsumption) * 100).toFixed(1)
-      const totalAnnualRevenue = Math.round(totalSavings * 0.8)
-      const totalPaybackPeriod = (totalInvestment / totalAnnualRevenue).toFixed(1)
-      
-      // 生成模拟结果
-      this.simulationResults = {
-        expectedSavings: totalSavings.toLocaleString(),
-        savingsRate,
-        expectedRevenue: totalAnnualRevenue.toLocaleString(),
-        paybackPeriod: totalPaybackPeriod,
-        strategyDetails: selectedEffects,
-        recommendations: this.generateRecommendations(selectedEffects)
-      }
-      
-      // 绘制图表
-      this.drawEnergyComparisonChart(baseEnergyConsumption, totalSavings)
-      this.drawStrategyContributionChart(selectedEffects)
+      this.$message.success('已保存到历史记录')
+      this.historyCount++
     },
-    // 获取基准能耗
-    getBaseEnergyConsumption() {
-      // 根据站点获取基准能耗数据
-      const baseEnergyData = {
-        'BJ': 16800000,
-        'SH': 18500000,
-        'GZ': 15200000,
-        'SZ': 14500000,
-        'HZ': 12800000,
-        'CD': 11500000
-      }
-      return baseEnergyData[this.formData.station] || 15000000
-    },
-    // 绘制能耗对比图表
-    drawEnergyComparisonChart(baseEnergy, savings) {
-      const chartDom = this.$refs.energyComparisonChart
-      this.energyComparisonChart = echarts.init(chartDom)
-      
-      const option = {
-        title: {
-          text: '能耗对比',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
+    initQuickChart() {
+      if (this.$refs.quickChart) {
+        this.quickChart = echarts.init(this.$refs.quickChart)
+        const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+        const baseData = [320, 350, 380, 420, 480, 520, 560, 550, 490, 440, 380, 340]
+        const optimizedData = baseData.map(v => Math.round(v * (1 - 0.15 + Math.random() * 0.05)))
+
+        const option = {
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross' }
           },
-          formatter: function(params) {
-            return params[0].name + ': ' + params[0].value.toLocaleString() + ' kWh'
-          }
-        },
-        legend: {
-          data: ['基准能耗', '实施后能耗'],
-          bottom: 10
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '15%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: ['能耗对比']
-        },
-        yAxis: {
-          type: 'value',
-          axisLabel: {
-            formatter: '{value} kWh'
-          }
-        },
-        series: [
-          {
-            name: '基准能耗',
-            type: 'bar',
-            data: [baseEnergy],
-            itemStyle: {
-              color: '#409EFF'
-            }
+          legend: {
+            data: ['优化前能耗', '优化后能耗'],
+            bottom: 0
           },
-          {
-            name: '实施后能耗',
-            type: 'bar',
-            data: [baseEnergy - savings],
-            itemStyle: {
-              color: '#67C23A'
+          grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '15%',
+            top: '10%',
+            containLabel: true
+          },
+          xAxis: {
+            type: 'category',
+            data: months,
+            axisLine: { lineStyle: { color: '#dcdfe6' } },
+            axisLabel: { color: '#606266' }
+          },
+          yAxis: {
+            type: 'value',
+            name: 'kWh',
+            axisLine: { lineStyle: { color: '#dcdfe6' } },
+            axisLabel: { color: '#606266' },
+            splitLine: { lineStyle: { color: '#ebeef5' } }
+          },
+          series: [
+            {
+              name: '优化前能耗',
+              type: 'bar',
+              data: baseData,
+              itemStyle: { color: '#f56c6c' },
+              barWidth: '30%'
+            },
+            {
+              name: '优化后能耗',
+              type: 'bar',
+              data: optimizedData,
+              itemStyle: { color: '#67c23a' },
+              barWidth: '30%'
             }
-          }
-        ]
-      }
-      
-      this.energyComparisonChart.setOption(option)
-      
-      // 监听窗口大小变化
-      window.addEventListener('resize', () => {
-        this.energyComparisonChart.resize()
-      })
-    },
-    // 绘制策略贡献分布图表
-    drawStrategyContributionChart(strategies) {
-      const chartDom = this.$refs.strategyContributionChart
-      this.strategyContributionChart = echarts.init(chartDom)
-      
-      const option = {
-        title: {
-          text: '各策略节能贡献分布',
-          left: 'center'
-        },
-        tooltip: {
-          trigger: 'item',
-          formatter: '{b}: {c} kWh ({d}%)'
-        },
-        legend: {
-          orient: 'vertical',
-          left: 'left',
-          data: strategies.map(item => item.name)
-        },
-        series: [
-          {
-            name: '节能贡献',
-            type: 'pie',
-            radius: '50%',
-            data: strategies.map(item => ({
-              value: item.savings,
-              name: item.name
-            })),
-            emphasis: {
-              itemStyle: {
-                shadowBlur: 10,
-                shadowOffsetX: 0,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
-              }
-            }
-          }
-        ]
-      }
-      
-      this.strategyContributionChart.setOption(option)
-      
-      // 监听窗口大小变化
-      window.addEventListener('resize', () => {
-        this.strategyContributionChart.resize()
-      })
-    },
-    // 生成实施建议
-    generateRecommendations(strategies) {
-      const now = new Date()
-      const timestamp = now.getFullYear() + '-' + (now.getMonth() + 1) + '-' + now.getDate()
-      
-      return [
-        {
-          title: '优先实施高性价比策略',
-          content: '建议优先实施节能率高、回收期短的策略，如照明系统优化和智能控制系统，快速实现节能效果。',
-          timestamp
-        },
-        {
-          title: '分阶段实施长期策略',
-          content: '对于投资较大的策略，如可再生能源应用和能源存储系统，建议分阶段实施，降低初期投资压力。',
-          timestamp
-        },
-        {
-          title: '建立能耗监测体系',
-          content: '在实施节能策略的同时，建立完善的能耗监测体系，实时跟踪节能效果，及时调整策略。',
-          timestamp
-        },
-        {
-          title: '开展节能宣传培训',
-          content: '对车站工作人员开展节能宣传和培训，提高节能意识，确保节能策略的有效实施。',
-          timestamp
-        },
-        {
-          title: '定期评估与优化',
-          content: '定期评估节能策略的实施效果，根据实际情况进行优化调整，持续提升节能效益。',
-          timestamp
+          ]
         }
-      ]
+
+        this.quickChart.setOption(option)
+        this.resizeHandler = () => this.quickChart.resize()
+        window.addEventListener('resize', this.resizeHandler)
+      }
+    },
+    updateQuickChart() {
+      if (this.quickChart) {
+        const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+        const baseData = [320, 350, 380, 420, 480, 520, 560, 550, 490, 440, 380, 340]
+        const savingsRate = parseFloat(this.quickResults.savingsRate) / 100
+        const optimizedData = baseData.map(v => Math.round(v * (1 - savingsRate)))
+
+        this.quickChart.setOption({
+          series: [
+            { data: baseData },
+            { data: optimizedData }
+          ]
+        })
+      }
     }
   }
 }
@@ -529,22 +493,27 @@ export default {
   min-height: 100vh;
 }
 
-/* 页面标题 */
 .page-header {
   margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .page-title {
   font-size: 28px;
   color: #303133;
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   display: flex;
   align-items: center;
 }
 
 .page-title i {
-  color: #67C23A;
-  margin-right: 10px;
+  color: #409EFF;
+  margin-right: 12px;
 }
 
 .page-subtitle {
@@ -553,9 +522,16 @@ export default {
   margin: 0;
 }
 
-/* 策略卡片 */
-.strategy-card {
+.navigation-card {
   margin-bottom: 20px;
+}
+
+.navigation-card >>> .el-tabs__item {
+  font-size: 14px;
+}
+
+.navigation-card >>> .el-tabs__item i {
+  margin-right: 5px;
 }
 
 .card-header {
@@ -564,179 +540,183 @@ export default {
   align-items: center;
 }
 
-.card-title {
-  font-size: 18px;
-  color: #303133;
-  margin: 0;
+.card-header span {
   display: flex;
   align-items: center;
+  font-weight: 500;
 }
 
-.card-title i {
+.card-header span i {
   margin-right: 8px;
   color: #409EFF;
 }
 
-.strategy-content {
+.quick-simulation-container {
   padding: 20px 0;
 }
 
-.strategy-section {
-  margin-bottom: 20px;
+.quick-stats-card {
+  height: 100%;
 }
 
-.section-title {
-  font-size: 16px;
-  color: #303133;
-  margin: 0 0 15px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #EBEEF5;
-}
-
-/* 策略选择 */
-.strategy-checkboxes {
+.stats-content {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.checkbox-content {
+.stat-item {
   display: flex;
-  flex-direction: column;
-}
-
-.checkbox-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin: 0 0 5px 0;
-}
-
-.checkbox-desc {
-  font-size: 12px;
-  color: #909399;
-  margin: 0;
-}
-
-/* 操作按钮 */
-.strategy-actions {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #EBEEF5;
-}
-
-/* 结果展示 */
-.results-container {
-  margin-top: 20px;
-}
-
-.results-card {
-  margin-bottom: 20px;
-}
-
-.results-metrics {
-  padding: 20px 0;
-}
-
-.metric-item {
-  text-align: center;
-  padding: 20px;
-  background-color: #f8f9fa;
+  align-items: center;
+  padding: 12px;
+  background: #fafbfc;
   border-radius: 8px;
 }
 
-.metric-name {
-  font-size: 14px;
-  color: #606266;
-  margin: 0 0 10px 0;
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 20px;
+  color: #fff;
 }
 
-.metric-value {
-  margin: 10px 0;
+.stat-icon.lighting { background: linear-gradient(135deg, #f6d365, #fda085); }
+.stat-icon.airConditioning { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+.stat-icon.total { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+.stat-icon.investment { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+
+.stat-info {
+  flex: 1;
 }
 
-.value-number {
-  font-size: 32px;
-  font-weight: bold;
-  color: #409EFF;
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
 }
 
-.value-unit {
-  font-size: 16px;
-  color: #606266;
-  margin-left: 5px;
-}
-
-.metric-desc {
+.stat-label {
   font-size: 12px;
   color: #909399;
-  margin-top: 10px;
 }
 
-/* 图表容器 */
-.chart-container {
-  height: 400px;
+.result-card {
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.result-card.highlight {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+}
+
+.result-card.success {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  color: #fff;
+}
+
+.result-card.info {
+  background: linear-gradient(135deg, #2193b0, #6dd5ed);
+  color: #fff;
+}
+
+.result-card.warning {
+  background: linear-gradient(135deg, #f5af19, #f12711);
+  color: #fff;
+}
+
+.result-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.result-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.result-label {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.chart-section {
   margin-top: 20px;
 }
 
-.chart {
-  width: 100%;
-  height: 100%;
+.chart-container {
+  height: 350px;
 }
 
-/* 策略详情表格 */
-.details-card {
-  margin-bottom: 20px;
+.system-status-card {
+  margin: 0 0 20px 0;
 }
 
-/* 实施建议 */
-.recommendation-card {
-  margin-bottom: 20px;
+.status-item {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background: #fafbfc;
+  border-radius: 10px;
+  margin-bottom: 15px;
 }
 
-.recommendation-content {
-  padding: 20px 0;
+.status-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  font-size: 22px;
+  color: #fff;
 }
 
-.recommendation-title {
+.status-icon.success { background: linear-gradient(135deg, #11998e, #38ef7d); }
+.status-icon.primary { background: linear-gradient(135deg, #667eea, #764ba2); }
+.status-icon.warning { background: linear-gradient(135deg, #f5af19, #f12711); }
+.status-icon.info { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
+
+.status-info {
+  flex: 1;
+}
+
+.status-value {
   font-size: 16px;
+  font-weight: 600;
   color: #303133;
-  margin: 0 0 10px 0;
 }
 
-.recommendation-desc {
-  font-size: 14px;
-  color: #606266;
-  margin: 0;
+.status-label {
+  font-size: 12px;
+  color: #909399;
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .energy-strategy-container {
     padding: 10px;
   }
-  
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .page-title {
     font-size: 24px;
   }
-  
-  .strategy-content {
+
+  .quick-simulation-container {
     padding: 10px 0;
-  }
-  
-  .chart-container {
-    height: 300px;
-  }
-  
-  .metric-item {
-    padding: 15px 10px;
-  }
-  
-  .value-number {
-    font-size: 24px;
   }
 }
 </style>

@@ -2,7 +2,7 @@
   <div class="home-container">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2>首页数据展示</h2>
+      <h2>首页</h2>
       <div class="header-actions">
         <el-date-picker
           v-model="dateRange"

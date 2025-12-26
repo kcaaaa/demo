@@ -210,7 +210,7 @@
 
 <script>
 import * as echarts from 'echarts'
-import { ref, onMounted, onUnmounted, reactive, computed } from 'vue'
+import { ref, onMounted, onUnmounted, reactive, computed, watch } from 'vue'
 
 export default {
   name: 'MultiStationCompare',
@@ -235,6 +235,10 @@ export default {
     const energyType = ref('total')
     const trendTimeInterval = ref('day')
 
+    // 调色板，保持图例/图表颜色一致
+    const palette = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399', '#722ED1', '#13C2C2', '#FA8C16']
+    const getColor = (index) => palette[index % palette.length]
+
     // 站点能耗数据
     const stationEnergyData = reactive({
       beijing: {
@@ -247,7 +251,8 @@ export default {
           { name: '燃气', value: 285000 },
           { name: '水', value: 186000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 5000) + 38000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 5000) + 38000),
+        monthTrend: [24500, 23800, 25200, 24100, 25600, 24800]
       },
       shanghai: {
         totalEnergy: 1428000,
@@ -259,7 +264,8 @@ export default {
           { name: '燃气', value: 325000 },
           { name: '水', value: 211000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 6000) + 42000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 6000) + 42000),
+        monthTrend: [23800, 23200, 24500, 23900, 24800, 24100]
       },
       guangzhou: {
         totalEnergy: 1185000,
@@ -271,7 +277,8 @@ export default {
           { name: '燃气', value: 268000 },
           { name: '水', value: 194000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 4500) + 35000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 4500) + 35000),
+        monthTrend: [22800, 22500, 23500, 23200, 24200, 23800]
       },
       shenzhen: {
         totalEnergy: 1092000,
@@ -283,7 +290,8 @@ export default {
           { name: '燃气', value: 245000 },
           { name: '水', value: 165000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 4000) + 32000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 4000) + 32000),
+        monthTrend: [21500, 20800, 22200, 21800, 22600, 22000]
       },
       hangzhou: {
         totalEnergy: 987000,
@@ -295,7 +303,8 @@ export default {
           { name: '燃气', value: 228000 },
           { name: '水', value: 147000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3500) + 28000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3500) + 28000),
+        monthTrend: [18500, 18200, 19100, 18800, 19600, 19000]
       },
       nanjing: {
         totalEnergy: 895000,
@@ -307,7 +316,8 @@ export default {
           { name: '燃气', value: 205000 },
           { name: '水', value: 132000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3000) + 26000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3000) + 26000),
+        monthTrend: [16800, 16400, 17500, 17200, 18000, 17600]
       },
       chengdu: {
         totalEnergy: 932000,
@@ -319,7 +329,8 @@ export default {
           { name: '燃气', value: 218000 },
           { name: '水', value: 132000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3200) + 27000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 3200) + 27000),
+        monthTrend: [17400, 17000, 18100, 17800, 18600, 18200]
       },
       wuhan: {
         totalEnergy: 867000,
@@ -331,7 +342,8 @@ export default {
           { name: '燃气', value: 198000 },
           { name: '水', value: 131000 }
         ],
-        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 2800) + 24000)
+        dailyTrend: Array.from({ length: 31 }, (_, i) => Math.floor(Math.random() * 2800) + 24000),
+        monthTrend: [16200, 15800, 16900, 16600, 17400, 17000]
       }
     })
 
@@ -393,9 +405,41 @@ export default {
         .sort((a, b) => b.potential - a.potential)
     })
 
+    const getTrendXAxis = () => {
+      if (trendTimeInterval.value === 'day') {
+        return Array.from({ length: 31 }, (_, i) => `${i + 1}日`)
+      }
+      if (trendTimeInterval.value === 'week') {
+        return ['第1周', '第2周', '第3周', '第4周', '第5周']
+      }
+      return ['1月', '2月', '3月', '4月', '5月', '6月']
+    }
+
+    const getTrendDataByInterval = (stationKey) => {
+      const data = stationEnergyData[stationKey]
+      if (!data) return []
+      if (trendTimeInterval.value === 'day') {
+        return data.dailyTrend
+      }
+      if (trendTimeInterval.value === 'week') {
+        const weeks = []
+        const chunkSize = Math.ceil(data.dailyTrend.length / 5)
+        for (let i = 0; i < data.dailyTrend.length; i += chunkSize) {
+          const slice = data.dailyTrend.slice(i, i + chunkSize)
+          const avg = Math.round(slice.reduce((a, b) => a + b, 0) / slice.length)
+          weeks.push(avg)
+        }
+        return weeks
+      }
+      return data.monthTrend || []
+    }
+
     // 初始化总能耗对比图表
     const initTotalEnergyChart = () => {
       if (!totalEnergyChart.value) return
+      if (totalEnergyChartInstance) {
+        totalEnergyChartInstance.dispose()
+      }
       totalEnergyChartInstance = echarts.init(totalEnergyChart.value)
       
       const option = {
@@ -406,17 +450,20 @@ export default {
           }
         },
         legend: {
-          data: selectedStations.value.map(getStationName)
+          data: selectedStations.value.map(getStationName),
+          top: 0,
+          left: 'center'
         },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '12%',
+          top: 40,
           containLabel: true
         },
         xAxis: {
           type: 'category',
-          data: ['总能耗', '单位面积能耗']
+          data: ['总能耗']
         },
         yAxis: {
           type: 'value',
@@ -427,25 +474,25 @@ export default {
         series: selectedStations.value.map((station, index) => ({
           name: getStationName(station),
           type: 'bar',
-          data: [
-            stationEnergyData[station].totalEnergy,
-            stationEnergyData[station].energyPerArea
-          ],
+          data: [stationEnergyData[station].totalEnergy],
           itemStyle: {
-            color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'][index % 5]
+            color: getColor(index)
           }
         }))
       }
       
-      totalEnergyChartInstance.setOption(option)
+      totalEnergyChartInstance.setOption(option, true)
     }
 
     // 初始化能耗趋势对比图表
     const initEnergyTrendChart = () => {
       if (!energyTrendChart.value) return
+      if (energyTrendChartInstance) {
+        energyTrendChartInstance.dispose()
+      }
       energyTrendChartInstance = echarts.init(energyTrendChart.value)
       
-      const xAxisData = Array.from({ length: 31 }, (_, i) => `${i + 1}日`)
+      const xAxisData = getTrendXAxis()
       
       const option = {
         tooltip: {
@@ -455,12 +502,13 @@ export default {
           }
         },
         legend: {
-          data: selectedStations.value.map(getStationName)
+          data: selectedStations.value.map(getStationName),
+          bottom: 0
         },
         grid: {
           left: '3%',
           right: '4%',
-          bottom: '3%',
+          bottom: '12%',
           containLabel: true
         },
         xAxis: {
@@ -475,23 +523,28 @@ export default {
         series: selectedStations.value.map((station, index) => ({
           name: getStationName(station),
           type: 'line',
-          data: stationEnergyData[station].dailyTrend,
+          data: getTrendDataByInterval(station),
           smooth: true,
           itemStyle: {
-            color: ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399'][index % 5]
+            color: getColor(index)
           },
           areaStyle: {
-            opacity: 0.1
-          }
+            opacity: 0.12,
+            color: getColor(index)
+          },
+          showSymbol: false
         }))
       }
       
-      energyTrendChartInstance.setOption(option)
+      energyTrendChartInstance.setOption(option, true)
     }
 
     // 初始化能耗结构对比图表
     const initEnergyStructureChart = () => {
       if (!energyStructureChart.value) return
+      if (energyStructureChartInstance) {
+        energyStructureChartInstance.dispose()
+      }
       energyStructureChartInstance = echarts.init(energyStructureChart.value)
       
       const option = {
@@ -527,7 +580,10 @@ export default {
           labelLine: {
             show: false
           },
-          data: stationEnergyData[station].energyStructure
+          data: stationEnergyData[station].energyStructure.map((item, i) => ({
+            ...item,
+            itemStyle: { color: getColor(i) }
+          }))
         }))
       }
       
@@ -537,6 +593,9 @@ export default {
     // 初始化单位面积能耗对比图表
     const initEnergyPerAreaChart = () => {
       if (!energyPerAreaChart.value) return
+      if (energyPerAreaChartInstance) {
+        energyPerAreaChartInstance.dispose()
+      }
       energyPerAreaChartInstance = echarts.init(energyPerAreaChart.value)
       
       const option = {
@@ -567,8 +626,8 @@ export default {
             data: selectedStations.value.map(station => stationEnergyData[station].energyPerArea),
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                { offset: 0, color: '#409EFF' },
-                { offset: 1, color: '#67C23A' }
+                { offset: 0, color: getColor(0) },
+                { offset: 1, color: getColor(1) }
               ])
             },
             label: {
@@ -579,15 +638,18 @@ export default {
         ]
       }
       
-      energyPerAreaChartInstance.setOption(option)
+      energyPerAreaChartInstance.setOption(option, true)
     }
 
     // 初始化所有图表
     const initCharts = () => {
-      initTotalEnergyChart()
-      initEnergyTrendChart()
-      initEnergyStructureChart()
-      initEnergyPerAreaChart()
+      // 确保 DOM 已渲染再初始化，避免空容器导致不显示
+      requestAnimationFrame(() => {
+        initTotalEnergyChart()
+        initEnergyTrendChart()
+        initEnergyStructureChart()
+        initEnergyPerAreaChart()
+      })
     }
 
     // 处理窗口大小变化
@@ -620,6 +682,17 @@ export default {
     onMounted(() => {
       initCharts()
       window.addEventListener('resize', handleWindowResize)
+    })
+
+    watch(trendTimeInterval, () => {
+      initEnergyTrendChart()
+    })
+
+    watch(selectedStations, () => {
+      initTotalEnergyChart()
+      initEnergyTrendChart()
+      initEnergyStructureChart()
+      initEnergyPerAreaChart()
     })
 
     onUnmounted(() => {

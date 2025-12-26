@@ -1,5 +1,8 @@
 <template>
-  <div class="app-container">
+  <div v-if="isLoginPage" class="login-container">
+    <router-view />
+  </div>
+  <div v-else class="app-container">
     <!-- 侧边导航菜单 -->
     <el-aside :width="isCollapse ? '64px' : '200px'" class="app-aside">
       <div class="aside-header">
@@ -13,7 +16,7 @@
       </div>
       
       <el-menu
-        default-active="/"
+        :default-active="route.path"
         class="el-menu-vertical-demo"
         :collapse="isCollapse"
         router
@@ -22,37 +25,13 @@
         active-text-color="#409EFF"
         :collapse-transition="false"
       >
-        <el-menu-item index="/">
-          <i class="fa fa-home"></i>
-          <template #title>首页数据展示</template>
-        </el-menu-item>
-        <el-menu-item index="/station-analysis">
-          <i class="fa fa-bar-chart"></i>
-          <template #title>单站能耗分析</template>
-        </el-menu-item>
-        <el-menu-item index="/energy-ratio">
-          <i class="fa fa-pie-chart"></i>
-          <template #title>能耗占比分析</template>
-        </el-menu-item>
-        <el-menu-item index="/energy-alert">
-          <i class="fa fa-exclamation-triangle"></i>
-          <template #title>能耗分析预警系统</template>
-        </el-menu-item>
-        <el-menu-item index="/multi-station-compare">
-          <i class="fa fa-line-chart"></i>
-          <template #title>多站能耗对比</template>
-        </el-menu-item>
-        <el-menu-item index="/energy-strategy">
-          <i class="fa fa-lightbulb-o"></i>
-          <template #title>节能策略模拟</template>
-        </el-menu-item>
-        <el-menu-item index="/device-management">
-          <i class="fa fa-cog"></i>
-          <template #title>设备与系统管理</template>
-        </el-menu-item>
-        <el-menu-item index="/system-management">
-          <i class="fa fa-wrench"></i>
-          <template #title>系统管理</template>
+        <el-menu-item
+          v-for="item in filteredMenuItems"
+          :key="item.path"
+          :index="item.path"
+        >
+          <i :class="['fa', item.icon]"></i>
+          <template #title>{{ item.label }}</template>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -75,21 +54,21 @@
           </span>
         </div>
         <div class="header-right">
-          <el-dropdown>
+          <el-tag type="info" size="small">
+            角色：{{ roleLabel }}
+          </el-tag>
+          <el-dropdown @command="handleCommand">
             <span class="user-info">
               <i class="fa fa-user-circle-o"></i>
-              <span class="user-name">管理员</span>
+              <span class="user-name">{{ currentUser.displayName }}</span>
               <i class="fa fa-angle-down"></i>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item>
+                <el-dropdown-item command="profile">
                   <i class="fa fa-user"></i> 个人中心
                 </el-dropdown-item>
-                <el-dropdown-item>
-                  <i class="fa fa-cog"></i> 系统设置
-                </el-dropdown-item>
-                <el-dropdown-item divided>
+                <el-dropdown-item divided command="logout">
                   <i class="fa fa-sign-out"></i> 退出登录
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -103,20 +82,89 @@
         <router-view />
       </el-main>
     </el-container>
+
+    <!-- 个人中心 -->
+    <el-dialog
+      title="个人中心"
+      :visible.sync="profileDialogVisible"
+      width="420px"
+    >
+      <el-form :model="profileForm" label-width="100px">
+        <el-form-item label="显示名称">
+          <el-input v-model="profileForm.displayName" placeholder="展示用昵称" />
+        </el-form-item>
+        <el-form-item label="用户名">
+          <el-input v-model="profileForm.username" placeholder="登录用户名" />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="profileForm.password" placeholder="不修改可留空" show-password />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="profileDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveProfile">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import {
+  getCurrentUser,
+  logout,
+  getAllowedRoutes,
+  getHomePath,
+  updateProfile
+} from './utils/auth'
+
+const MENU_ITEMS = [
+  { path: '/', label: '首页', icon: 'fa-home' },
+  { path: '/station-analysis', label: '单站能耗分析', icon: 'fa-bar-chart' },
+  { path: '/energy-ratio', label: '能耗占比分析', icon: 'fa-pie-chart' },
+  { path: '/energy-alert', label: '能耗分析预警', icon: 'fa-exclamation-triangle' },
+  { path: '/multi-station-compare', label: '多站能耗对比', icon: 'fa-line-chart' },
+  { path: '/energy-strategy', label: '节能策略模拟', icon: 'fa-lightbulb-o' },
+  { path: '/device-management', label: '设备管理', icon: 'fa-server' },
+  { path: '/system-management', label: '系统管理', icon: 'fa-wrench' }
+]
 
 export default {
   name: 'App',
   setup() {
-    const isCollapse = ref(false)
     const route = useRoute()
-    
-    // 面包屑数据
+    const router = useRouter()
+    const isCollapse = ref(false)
+    const profileDialogVisible = ref(false)
+    const profileForm = ref({
+      username: '',
+      displayName: '',
+      password: ''
+    })
+
+    const currentUser = ref(getCurrentUser() || { displayName: '访客', role: '' })
+
+    const refreshUser = () => {
+      currentUser.value = getCurrentUser() || { displayName: '访客', role: '' }
+    }
+
+    const roleLabel = computed(() => {
+      const map = {
+        admin: '管理员',
+        single: '单站演示',
+        multi: '多站演示'
+      }
+      return map[currentUser.value.role] || '访客'
+    })
+
+    const allowedPaths = computed(() => getAllowedRoutes(currentUser.value.role))
+
+    const filteredMenuItems = computed(() =>
+      MENU_ITEMS.filter(item => allowedPaths.value.includes(item.path))
+    )
+
     const breadcrumbItems = computed(() => {
       const items = []
       if (route.path !== '/') {
@@ -133,33 +181,87 @@ export default {
       return items
     })
 
-    // 切换菜单折叠状态
     const toggleCollapse = () => {
       isCollapse.value = !isCollapse.value
     }
 
-    // 监听路由变化，更新面包屑
-    watch(() => route.path, (newPath) => {
-      console.log('路由变化:', newPath)
-    })
+    const isLoginPage = computed(() => route.path === '/login')
 
-    // 响应式处理
+    const handleCommand = (cmd) => {
+      if (cmd === 'logout') {
+        logout()
+        router.replace('/login')
+        return
+      }
+      if (cmd === 'profile') {
+        profileForm.value = {
+          username: currentUser.value.username,
+          displayName: currentUser.value.displayName,
+          password: ''
+        }
+        profileDialogVisible.value = true
+      }
+    }
+
+    const saveProfile = () => {
+      const payload = {
+        username: profileForm.value.username?.trim(),
+        displayName: profileForm.value.displayName?.trim()
+      }
+      if (profileForm.value.password) {
+        payload.password = profileForm.value.password.trim()
+      }
+      const updated = updateProfile(payload)
+      if (updated) {
+        currentUser.value = updated
+        profileDialogVisible.value = false
+        ElMessage.success('个人信息已更新')
+      } else {
+        ElMessage.error('更新失败，请重新登录')
+        router.replace('/login')
+      }
+    }
+
     const handleResize = () => {
       if (window.innerWidth < 768) {
         isCollapse.value = true
       }
     }
 
-    // 生命周期钩子
     onMounted(() => {
+      refreshUser()
       handleResize()
       window.addEventListener('resize', handleResize)
+      if (!currentUser.value.role) {
+        router.replace('/login')
+      }
+      // 如果当前路由不在权限列表，跳转到可访问首页
+      if (currentUser.value.role && !allowedPaths.value.includes(route.path)) {
+        router.replace(getHomePath(currentUser.value.role))
+      }
     })
 
+    // 登录跳转后刷新头部与菜单信息
+    watch(
+      () => route.fullPath,
+      () => {
+        refreshUser()
+      }
+    )
+
     return {
+      route,
       isCollapse,
       toggleCollapse,
-      breadcrumbItems
+      breadcrumbItems,
+      filteredMenuItems,
+      currentUser,
+      roleLabel,
+      profileDialogVisible,
+      profileForm,
+      saveProfile,
+      handleCommand,
+      isLoginPage
     }
   }
 }
@@ -179,6 +281,10 @@ body {
   line-height: 1.5;
   color: #303133;
   background-color: #f5f7fa;
+}
+
+.login-container {
+  min-height: 100vh;
 }
 
 /* 应用容器 */
@@ -284,7 +390,7 @@ body {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 10px;
 }
 
 .user-info {

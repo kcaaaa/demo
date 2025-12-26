@@ -300,7 +300,8 @@ export default {
       selectedDevice: null,
       // 图表实例
       deviceStatusChart: null,
-      energyTrendChart: null
+      energyTrendChart: null,
+      resizeHandler: null
     }
   },
   mounted() {
@@ -310,6 +311,11 @@ export default {
     })
   },
   beforeUnmount() {
+    // 移除resize事件监听
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler)
+      this.resizeHandler = null
+    }
     // 销毁图表实例
     if (this.deviceStatusChart) {
       this.deviceStatusChart.dispose()
@@ -319,6 +325,15 @@ export default {
     }
   },
   methods: {
+    // 窗口大小变化处理
+    handleResize() {
+      if (this.deviceStatusChart) {
+        this.deviceStatusChart.resize()
+      }
+      if (this.energyTrendChart) {
+        this.energyTrendChart.resize()
+      }
+    },
     // 初始化数据
     initData() {
       this.tableLoading = true
@@ -402,9 +417,8 @@ export default {
       this.updateDeviceStatusChart()
       
       // 监听窗口大小变化
-      window.addEventListener('resize', () => {
-        this.deviceStatusChart.resize()
-      })
+      this.resizeHandler = this.handleResize
+      window.addEventListener('resize', this.resizeHandler)
     },
     
     // 更新设备状态分布图

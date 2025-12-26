@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <el-card shadow="hover" class="page-header">
       <h1 class="page-title">
-        <i class="fa fa-exclamation-triangle"></i> 能耗分析预警系统
+        <i class="fa fa-exclamation-triangle"></i> 能耗分析预警
       </h1>
       <p class="page-subtitle">实时监控能耗数据，智能检测异常并发出预警</p>
     </el-card>
@@ -271,15 +271,20 @@ export default {
     this.loadAlerts()
   },
   beforeUnmount() {
+    // 移除resize事件监听
+    window.removeEventListener('resize', this.handleWindowResize)
     // 销毁图表实例
     if (this.alertLevelChart) {
       this.alertLevelChart.dispose()
+      this.alertLevelChart = null
     }
     if (this.alertTypeChart) {
       this.alertTypeChart.dispose()
+      this.alertTypeChart = null
     }
     if (this.alertTrendChart) {
       this.alertTrendChart.dispose()
+      this.alertTrendChart = null
     }
   },
   methods: {
@@ -372,7 +377,10 @@ export default {
             type: 'bar',
             data: [35, 28, 22, 18, 15, 10],
             itemStyle: {
-              color: '#409EFF'
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#409EFF' },
+                { offset: 1, color: '#67C23A' }
+              ])
             },
             label: {
               show: true,
@@ -421,7 +429,12 @@ export default {
             name: '高危预警',
             type: 'line',
             stack: 'Total',
-            areaStyle: {},
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(245,108,108,0.35)' },
+                { offset: 1, color: 'rgba(245,108,108,0.05)' }
+              ])
+            },
             emphasis: {
               focus: 'series'
             },
@@ -434,7 +447,12 @@ export default {
             name: '中危预警',
             type: 'line',
             stack: 'Total',
-            areaStyle: {},
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(230,162,60,0.35)' },
+                { offset: 1, color: 'rgba(230,162,60,0.05)' }
+              ])
+            },
             emphasis: {
               focus: 'series'
             },
@@ -447,7 +465,12 @@ export default {
             name: '低危预警',
             type: 'line',
             stack: 'Total',
-            areaStyle: {},
+            areaStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: 'rgba(103,194,58,0.35)' },
+                { offset: 1, color: 'rgba(103,194,58,0.05)' }
+              ])
+            },
             emphasis: {
               focus: 'series'
             },
@@ -657,6 +680,8 @@ export default {
 .metric-card {
   height: 100%;
   transition: all 0.3s;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
 }
 
 .metric-card:hover {
@@ -716,5 +741,56 @@ export default {
 
 .trend-value.negative {
   color: #F56C6C;
+}
+
+.total-alerts {
+  background: linear-gradient(135deg, #e6f7ff, #ffffff);
+}
+
+.high-alerts {
+  background: linear-gradient(135deg, #fff1f0, #ffffff);
+}
+
+.medium-alerts {
+  background: linear-gradient(135deg, #fff7e6, #ffffff);
+}
+
+.low-alerts {
+  background: linear-gradient(135deg, #f6ffed, #ffffff);
+}
+
+.chart-card,
+.alert-list-card {
+  margin-bottom: 20px;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.chart-container {
+  height: 340px;
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pagination-container {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>

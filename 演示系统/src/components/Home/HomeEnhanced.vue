@@ -403,9 +403,7 @@
                 </div>
               </div>
 
-              <div class="correlation-matrix">
-                <div id="aiCorrelationChart" class="ai-chart-container"></div>
-              </div>
+
 
               <div class="correlation-insights">
                 <el-row :gutter="15">
@@ -1073,12 +1071,18 @@ export default {
     const initMultiViewCharts = () => {
       nextTick(() => {
         const compareElement = document.getElementById('multiStationCompareChart')
-        if (compareElement && !multiStationCompareChart) {
+        if (compareElement) {
+          if (multiStationCompareChart) {
+            multiStationCompareChart.dispose()
+          }
           multiStationCompareChart = echarts.init(compareElement)
         }
 
         const mapElement = document.getElementById('stationMapChart')
-        if (mapElement && !stationMapChart) {
+        if (mapElement) {
+          if (stationMapChart) {
+            stationMapChart.dispose()
+          }
           stationMapChart = echarts.init(mapElement)
         }
 
@@ -1659,7 +1663,11 @@ export default {
       { name: '能耗与客流', value: 0.85, description: '正相关关系强' },
       { name: '温度与空调能耗', value: 0.92, description: '强正相关关系' },
       { name: '照明与时间', value: -0.45, description: '中等负相关关系' },
-      { name: '设备效率与能耗', value: -0.78, description: '强负相关关系' }
+      { name: '设备效率与能耗', value: -0.78, description: '强负相关关系' },
+      { name: '电梯能耗与客流', value: 0.82, description: '强正相关关系' },
+      { name: '空气湿度与空调能耗', value: 0.56, description: '中等正相关关系' },
+      { name: '时间与照明能耗', value: -0.52, description: '中等负相关关系' },
+      { name: '设备负荷率与能耗', value: 0.88, description: '强正相关关系' }
     ]
 
     const forecastResults = ref([
@@ -1688,7 +1696,14 @@ export default {
     const correlationInsights = ref([
       { id: 'CI001', strength: 'strong', strengthText: '强相关', systems: '能耗 ↔ 客流', description: '客流增加 10% 时总能耗提升约 8%。', recommendation: '高峰时段预置照明与空调策略。' },
       { id: 'CI002', strength: 'strong', strengthText: '强相关', systems: '室外温度 ↔ 空调能耗', description: '温度每升高 1℃，空调能耗增加 2.3%。', recommendation: '结合天气预报提前 2 小时调整设定点。' },
-      { id: 'CI003', strength: 'negative', strengthText: '负相关', systems: '自然光 ↔ 照明能耗', description: '自然光强度提升会显著降低照明能耗。', recommendation: '开启按光照度动态调光，减少全亮时长。' }
+      { id: 'CI003', strength: 'negative', strengthText: '负相关', systems: '自然光 ↔ 照明能耗', description: '自然光强度提升会显著降低照明能耗。', recommendation: '开启按光照度动态调光，减少全亮时长。' },
+      { id: 'CI004', strength: 'strong', strengthText: '强相关', systems: '负荷率 ↔ 设备能耗', description: '设备负荷率与能耗呈指数关系，高负荷时效率降低 8%。', recommendation: '避免设备长时间满负荷运行，实施负荷均衡策略。' },
+      { id: 'CI005', strength: 'strong', strengthText: '强相关', systems: '客流 ↔ 电梯能耗', description: '电梯能耗与客流高度相关，客流量增加 15% 时电梯能耗增加 18%。', recommendation: '实施电梯智能调度，高峰期预配置电梯群。' },
+      { id: 'CI006', strength: 'moderate', strengthText: '中等相关', systems: '空气湿度 ↔ 空调能耗', description: '湿度每升高 10%，空调除湿能耗增加 3.2%。', recommendation: '湿度超过 65% 时启动除湿模式，合理设置目标湿度。' },
+      { id: 'CI007', strength: 'strong', strengthText: '强相关', systems: '设备效率 ↔ 总费用', description: '设备效率下降 10% 时运营成本增加 12.5%。', recommendation: '建立设备定期维护制度，效率低于 85% 时进行维修。' },
+      { id: 'CI008', strength: 'moderate', strengthText: '中等相关', systems: '时间 ↔ 照明能耗', description: '夜间照明能耗比白天高 15%，主要集中在 21:00-23:00 时段。', recommendation: '夜间照明采用智能分段控制，21:00 后降低照明强度。' },
+      { id: 'CI009', strength: 'strong', strengthText: '强相关', systems: '客流预测 ↔ 总能耗', description: '客流预测准确度高达 95%，可提前 2 小时调整能耗策略。', recommendation: '根据客流预测数据制定能耗调度计划，实现能耗前瞻性管理。' },
+      { id: 'CI010', strength: 'moderate', strengthText: '中等相关', systems: '通风系统 ↔ 空气质量', description: '通风系统运行时间与室内空气质量指数呈负相关。', recommendation: '空气质量指数超过 100 时增加通风时长或强度。' }
     ])
 
     const aiRecommendations = ref([
@@ -1868,6 +1883,96 @@ export default {
         description: '峰谷电价与总费用关联性分析',
         insights: '正在进行峰谷电价影响分析',
         recommendation: '待分析完成'
+      },
+      {
+        id: 'CR006',
+        time: '2024-12-29 11:30:00',
+        model: 'correlation',
+        accuracy: 93.7,
+        prediction: 'r=0.82',
+        confidence: 91,
+        metric: 'elevator_passenger',
+        coefficient: 0.82,
+        significance: 'high',
+        status: 'completed',
+        description: '电梯能耗与客流量关联性分析',
+        insights: '电梯能耗与客流量呈现强正相关，相关系数0.82',
+        recommendation: '建议优化电梯群控策略，高峰期预配置电梯群'
+      },
+      {
+        id: 'CR007',
+        time: '2024-12-29 12:00:00',
+        model: 'correlation',
+        accuracy: 86.5,
+        prediction: 'r=0.56',
+        confidence: 84,
+        metric: 'humidity_ac',
+        coefficient: 0.56,
+        significance: 'medium',
+        status: 'completed',
+        description: '空气湿度与空调能耗关联性分析',
+        insights: '空调能耗与空气湿度呈现中等正相关，相关系数0.56',
+        recommendation: '建议湿度超过65%时启动除湿模式，合理设置目标湿度'
+      },
+      {
+        id: 'CR008',
+        time: '2024-12-29 12:30:00',
+        model: 'correlation',
+        accuracy: 87.2,
+        prediction: 'r=-0.52',
+        confidence: 85,
+        metric: 'time_lighting',
+        coefficient: -0.52,
+        significance: 'medium',
+        status: 'completed',
+        description: '时间与照明能耗关联性分析',
+        insights: '照明能耗与时间呈现中等负相关，相关系数-0.52',
+        recommendation: '建议夜间照明采用智能分段控制，21:00后降低照明强度'
+      },
+      {
+        id: 'CR009',
+        time: '2024-12-29 13:00:00',
+        model: 'correlation',
+        accuracy: 94.8,
+        prediction: 'r=0.88',
+        confidence: 92,
+        metric: 'loadrate_energy',
+        coefficient: 0.88,
+        significance: 'high',
+        status: 'completed',
+        description: '设备负荷率与能耗关联性分析',
+        insights: '设备能耗与负荷率呈现强正相关，相关系数0.88',
+        recommendation: '建议避免设备长时间满负荷运行，实施负荷均衡策略'
+      },
+      {
+        id: 'CR010',
+        time: '2024-12-29 14:00:00',
+        model: 'correlation',
+        accuracy: 90.4,
+        prediction: 'r=-0.59',
+        confidence: 88,
+        metric: 'efficiency_cost',
+        coefficient: -0.59,
+        significance: 'medium',
+        status: 'completed',
+        description: '设备效率与总费用关联性分析',
+        insights: '总费用与设备效率呈现中等负相关，相关系数-0.59',
+        recommendation: '建议建立设备定期维护制度，效率低于85%时进行维修'
+      },
+      {
+        id: 'CR011',
+        time: '2024-12-29 15:00:00',
+        model: 'correlation',
+        accuracy: 95.1,
+        prediction: 'r=0.79',
+        confidence: 93,
+        metric: 'passenger_prediction',
+        coefficient: 0.79,
+        significance: 'high',
+        status: 'completed',
+        description: '客流预测与总能耗关联性分析',
+        insights: '客流预测准确度与总能耗呈现强正相关，相关系数0.79',
+        recommendation: '建议根据客流预测数据制定能耗调度计划，实现能耗前瞻性管理'
       }
     ])
 
@@ -2052,13 +2157,7 @@ export default {
       }
     ])
 
-    const correlationResults = ref([
-      { metric1: '总能耗', metric2: '客流量', coefficient: 0.85, significance: 'high' },
-      { metric1: '空调能耗', metric2: '室外温度', coefficient: 0.92, significance: 'high' },
-      { metric1: '照明能耗', metric2: '自然光照', coefficient: -0.68, significance: 'medium' },
-      { metric1: '设备能耗', metric2: '运行时间', coefficient: 0.76, significance: 'high' },
-      { metric1: '总费用', metric2: '峰谷电价', coefficient: 0.81, significance: 'high' }
-    ])
+    const correlationResults = ref([])
 
     const strategyResults = ref([
       { 
@@ -2147,7 +2246,6 @@ export default {
 
     // AI分析图表实例
     let aiForecastChart = null
-    let aiCorrelationChart = null
     let aiStrategyChart = null
     let aiImpactEnergyChart = null
     let aiImpactCostChart = null
@@ -2157,31 +2255,39 @@ export default {
       nextTick(() => {
         // 预测分析图表
         const forecastElement = document.getElementById('aiForecastChart')
-        if (forecastElement && !aiForecastChart) {
+        if (forecastElement) {
+          if (aiForecastChart) {
+            aiForecastChart.dispose()
+          }
           aiForecastChart = echarts.init(forecastElement)
         }
 
-        // 关联性分析图表
-        const correlationElement = document.getElementById('aiCorrelationChart')
-        if (correlationElement && !aiCorrelationChart) {
-          aiCorrelationChart = echarts.init(correlationElement)
-        }
+
 
         // 策略推荐图表
         const strategyElement = document.getElementById('aiStrategyChart')
-        if (strategyElement && !aiStrategyChart) {
+        if (strategyElement) {
+          if (aiStrategyChart) {
+            aiStrategyChart.dispose()
+          }
           aiStrategyChart = echarts.init(strategyElement)
         }
 
         // 影响分析图表 - 能耗变化预测
         const impactEnergyElement = document.getElementById('aiImpactEnergyChart')
-        if (impactEnergyElement && !aiImpactEnergyChart) {
+        if (impactEnergyElement) {
+          if (aiImpactEnergyChart) {
+            aiImpactEnergyChart.dispose()
+          }
           aiImpactEnergyChart = echarts.init(impactEnergyElement)
         }
 
         // 影响分析图表 - 成本效益分析
         const impactCostElement = document.getElementById('aiImpactCostChart')
-        if (impactCostElement && !aiImpactCostChart) {
+        if (impactCostElement) {
+          if (aiImpactCostChart) {
+            aiImpactCostChart.dispose()
+          }
           aiImpactCostChart = echarts.init(impactCostElement)
         }
 
@@ -2201,11 +2307,7 @@ export default {
             renderAiForecastChart()
           }
           break
-        case 'correlation':
-          if (aiCorrelationChart) {
-            renderAiCorrelationChart()
-          }
-          break
+
         case 'recommendation':
           if (aiStrategyChart) {
             renderAiStrategyChart()
@@ -2223,28 +2325,45 @@ export default {
     const ensureAiChartsInitialized = () => {
       nextTick(() => {
         const forecastElement = document.getElementById('aiForecastChart')
-        if (forecastElement && !aiForecastChart) {
-          aiForecastChart = echarts.init(forecastElement)
+        if (forecastElement) {
+          if (!aiForecastChart) {
+            aiForecastChart = echarts.init(forecastElement)
+          } else if (echarts.getInstanceByDom(forecastElement) !== aiForecastChart) {
+            aiForecastChart.dispose()
+            aiForecastChart = echarts.init(forecastElement)
+          }
         }
 
-        const correlationElement = document.getElementById('aiCorrelationChart')
-        if (correlationElement && !aiCorrelationChart) {
-          aiCorrelationChart = echarts.init(correlationElement)
-        }
+
 
         const strategyElement = document.getElementById('aiStrategyChart')
-        if (strategyElement && !aiStrategyChart) {
-          aiStrategyChart = echarts.init(strategyElement)
+        if (strategyElement) {
+          if (!aiStrategyChart) {
+            aiStrategyChart = echarts.init(strategyElement)
+          } else if (echarts.getInstanceByDom(strategyElement) !== aiStrategyChart) {
+            aiStrategyChart.dispose()
+            aiStrategyChart = echarts.init(strategyElement)
+          }
         }
 
         const impactEnergyElement = document.getElementById('aiImpactEnergyChart')
-        if (impactEnergyElement && !aiImpactEnergyChart) {
-          aiImpactEnergyChart = echarts.init(impactEnergyElement)
+        if (impactEnergyElement) {
+          if (!aiImpactEnergyChart) {
+            aiImpactEnergyChart = echarts.init(impactEnergyElement)
+          } else if (echarts.getInstanceByDom(impactEnergyElement) !== aiImpactEnergyChart) {
+            aiImpactEnergyChart.dispose()
+            aiImpactEnergyChart = echarts.init(impactEnergyElement)
+          }
         }
 
         const impactCostElement = document.getElementById('aiImpactCostChart')
-        if (impactCostElement && !aiImpactCostChart) {
-          aiImpactCostChart = echarts.init(impactCostElement)
+        if (impactCostElement) {
+          if (!aiImpactCostChart) {
+            aiImpactCostChart = echarts.init(impactCostElement)
+          } else if (echarts.getInstanceByDom(impactCostElement) !== aiImpactCostChart) {
+            aiImpactCostChart.dispose()
+            aiImpactCostChart = echarts.init(impactCostElement)
+          }
         }
       })
     }
@@ -2303,6 +2422,27 @@ export default {
     // 渲染AI关联性分析图表
     const renderAiCorrelationChart = () => {
       if (!aiCorrelationChart) return
+
+      // 如果没有数据，显示空状态
+      if (correlationResults.value.length === 0) {
+        const option = {
+          title: {
+            text: '暂无关联性分析数据',
+            left: 'center',
+            top: 'center',
+            textStyle: {
+              color: '#999',
+              fontSize: 16
+            }
+          },
+          grid: { left: 0, right: 0, top: 0, bottom: 0 },
+          xAxis: { show: false },
+          yAxis: { show: false },
+          series: []
+        }
+        aiCorrelationChart.setOption(option)
+        return
+      }
 
       // 获取所有唯一指标
       const allMetrics = new Set()
@@ -2838,10 +2978,13 @@ export default {
         accuracy: 95 + Math.random() * 4
       }))
 
-      correlationResults.value = correlationResults.value.map(item => ({
-        ...item,
-        coefficient: item.coefficient + (Math.random() - 0.5) * 0.1
-      }))
+      // 只在有关联性分析数据时才更新
+      if (correlationResults.value.length > 0) {
+        correlationResults.value = correlationResults.value.map(item => ({
+          ...item,
+          coefficient: item.coefficient + (Math.random() - 0.5) * 0.1
+        }))
+      }
 
       // 重新渲染当前图表
       setTimeout(() => {
@@ -3024,7 +3167,11 @@ export default {
       viewAllForecastReports,
       viewAllCorrelationReports,
       viewAllRecommendationReports,
-      viewAllImpactReports
+      viewAllImpactReports,
+      viewForecastReportDetail,
+      viewCorrelationReportDetail,
+      viewRecommendationReportDetail,
+      viewImpactReportDetail
     }
   }
 }
@@ -3708,9 +3855,7 @@ export default {
   min-width: 60px;
 }
 
-.correlation-matrix {
-  margin-bottom: 20px;
-}
+
 
 .correlation-insights {
   margin-top: 20px;

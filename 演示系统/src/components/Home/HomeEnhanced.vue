@@ -235,6 +235,516 @@
         </el-row>
       </div>
 
+      <div class="ai-analysis-section">
+        <el-card shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span><i class="fa fa-brain"></i> AI分析报告</span>
+              <div class="ai-header-actions">
+                <el-select v-model="aiAnalysisType" size="small" style="width: 150px;">
+                  <el-option label="预测分析" value="forecast" />
+                  <el-option label="关联性分析" value="correlation" />
+                  <el-option label="策略推荐" value="recommendation" />
+                  <el-option label="影响分析" value="impact" />
+                </el-select>
+                <el-button size="small" @click="refreshAiAnalysis">
+                  <i class="fa fa-refresh"></i> 刷新
+                </el-button>
+              </div>
+            </div>
+          </template>
+          
+          <div class="ai-analysis-content">
+            <!-- 预测分析 -->
+            <div v-if="aiAnalysisType === 'forecast'" class="forecast-analysis">
+              <div class="ai-section-header">
+                <h4><i class="fa fa-line-chart"></i> 设备能耗预测分析</h4>
+                <div class="ai-controls">
+                  <div class="ai-model-selector">
+                    <el-select v-model="selectedAiModel" size="small" style="width: 120px;">
+                      <el-option label="LSTM" value="lstm" />
+                      <el-option label="Prophet" value="prophet" />
+                      <el-option label="ARIMA" value="arima" />
+                      <el-option label="XGBoost" value="xgboost" />
+                    </el-select>
+                  </div>
+                  <div class="time-granularity">
+                    <el-button-group size="small">
+                      <el-button 
+                        :type="selectedTimeGranularity === 'day' ? 'primary' : ''"
+                        @click="selectedTimeGranularity = 'day'"
+                      >日</el-button>
+                      <el-button 
+                        :type="selectedTimeGranularity === 'week' ? 'primary' : ''"
+                        @click="selectedTimeGranularity = 'week'"
+                      >周</el-button>
+                      <el-button 
+                        :type="selectedTimeGranularity === 'month' ? 'primary' : ''"
+                        @click="selectedTimeGranularity = 'month'"
+                      >月</el-button>
+                      <el-button 
+                        :type="selectedTimeGranularity === 'year' ? 'primary' : ''"
+                        @click="selectedTimeGranularity = 'year'"
+                      >年</el-button>
+                    </el-button-group>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="forecast-metrics">
+                <el-row :gutter="15">
+                  <el-col :span="6" v-for="metric in forecastMetrics" :key="metric.name">
+                    <div class="ai-metric-card">
+                      <div class="ai-metric-value">{{ metric.value }}</div>
+                      <div class="ai-metric-label">{{ metric.label }}</div>
+                      <div class="ai-metric-trend" :class="metric.trend">
+                        <i :class="metric.trend === 'up' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                        {{ metric.change }}%
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <div class="forecast-chart">
+                <div id="aiForecastChart" class="ai-chart-container"></div>
+              </div>
+
+              <div class="forecast-insights">
+                <el-alert
+                  v-for="insight in forecastInsights"
+                  :key="insight.id"
+                  :type="insight.type"
+                  :title="insight.title"
+                  :description="insight.description"
+                  show-icon
+                  class="forecast-insight"
+                />
+              </div>
+
+              <div class="ai-analysis-reports">
+                <div class="ai-reports-header">
+                  <h5><i class="fa fa-file-text"></i> AI分析报告列表</h5>
+                  <el-button size="small" type="primary" text @click="viewAllForecastReports">
+                    查看全部
+                  </el-button>
+                </div>
+                <el-table :data="forecastReports" size="small" style="width: 100%">
+                  <el-table-column prop="time" label="分析时间" min-width="100">
+                    <template #default="scope">
+                      {{ formatReportTime(scope.row.time) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="model" label="预测模型" min-width="100">
+                    <template #default="scope">
+                      <el-tag size="small" :type="getModelTagType(scope.row.model)">
+                        {{ getModelName(scope.row.model) }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="accuracy" label="准确率" min-width="80">
+                    <template #default="scope">
+                      {{ scope.row.accuracy }}%
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="prediction" label="预测值" min-width="100">
+                    <template #default="scope">
+                      {{ scope.row.prediction }} kWh
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="confidence" label="置信度" min-width="100">
+                    <template #default="scope">
+                      <el-progress 
+                        :percentage="scope.row.confidence" 
+                        :stroke-width="6"
+                        :show-text="false"
+                        :color="getConfidenceColor(scope.row.confidence)"
+                      />
+                      <span style="font-size: 12px; color: var(--text-secondary);">
+                        {{ scope.row.confidence }}%
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="status" label="状态" min-width="80">
+                    <template #default="scope">
+                      <el-tag 
+                        :type="scope.row.status === 'completed' ? 'success' : 'warning'" 
+                        size="small"
+                      >
+                        {{ scope.row.status === 'completed' ? '已完成' : '进行中' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" min-width="80" fixed="right">
+                    <template #default="scope">
+                      <el-button type="primary" size="small" text @click="viewForecastReportDetail(scope.row)">
+                        查看详情
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+
+            <!-- 关联性分析 -->
+            <div v-if="aiAnalysisType === 'correlation'" class="correlation-analysis">
+              <div class="ai-section-header">
+                <h4><i class="fa fa-share-alt"></i> 系统关联性分析</h4>
+                <div class="correlation-controls">
+                  <el-slider
+                    v-model="correlationThreshold"
+                    :min="0.3"
+                    :max="1.0"
+                    :step="0.1"
+                    :format-tooltip="formatCorrelationTooltip"
+                    style="width: 200px;"
+                  />
+                  <span class="correlation-threshold-label">阈值: {{ correlationThreshold }}</span>
+                </div>
+              </div>
+
+              <div class="correlation-matrix">
+                <div id="aiCorrelationChart" class="ai-chart-container"></div>
+              </div>
+
+              <div class="correlation-insights">
+                <el-row :gutter="15">
+                  <el-col :span="8" v-for="insight in correlationInsights" :key="insight.id">
+                    <el-card shadow="hover" class="correlation-insight-card">
+                      <div class="correlation-strength" :class="insight.strength">
+                        <i :class="getCorrelationIcon(insight.strength)"></i>
+                        {{ insight.strengthText }}
+                      </div>
+                      <div class="correlation-systems">{{ insight.systems }}</div>
+                      <div class="correlation-description">{{ insight.description }}</div>
+                      <div class="correlation-recommendation">{{ insight.recommendation }}</div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <div class="ai-analysis-reports">
+                <div class="ai-reports-header">
+                  <h5><i class="fa fa-file-text"></i> AI关联性分析报告列表</h5>
+                  <el-button size="small" type="primary" text @click="viewAllCorrelationReports">
+                    查看全部
+                  </el-button>
+                </div>
+                <el-table :data="correlationReports" size="small" style="width: 100%">
+                  <el-table-column prop="time" label="分析时间" min-width="100">
+                    <template #default="scope">
+                      {{ formatReportTime(scope.row.time) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="metric" label="分析指标" min-width="120">
+                    <template #default="scope">
+                      {{ getMetricName(scope.row.metric) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="coefficient" label="相关系数" min-width="100">
+                    <template #default="scope">
+                      {{ scope.row.coefficient }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="significance" label="显著性" min-width="80">
+                    <template #default="scope">
+                      <el-tag 
+                        :type="getSignificanceTagType(scope.row.significance)" 
+                        size="small"
+                      >
+                        {{ getSignificanceName(scope.row.significance) }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="insights" label="洞察" min-width="180">
+                    <template #default="scope">
+                      <span class="insight-text">{{ scope.row.insights }}</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="status" label="状态" min-width="90">
+                    <template #default="scope">
+                      <el-tag 
+                        :type="getStatusTagType(scope.row.status)" 
+                        size="small"
+                      >
+                        {{ getStatusName(scope.row.status) }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" min-width="100" fixed="right">
+                    <template #default="scope">
+                      <el-button type="primary" size="small" text @click="viewCorrelationReportDetail(scope.row)">
+                        查看详情
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+
+            <!-- 策略推荐 -->
+            <div v-if="aiAnalysisType === 'recommendation'" class="recommendation-analysis">
+              <div class="ai-section-header">
+                <h4><i class="fa fa-lightbulb-o"></i> AI智能策略推荐</h4>
+                <div class="recommendation-filters">
+                  <el-select v-model="recommendationFilter" size="small" style="width: 120px;">
+                    <el-option label="全部策略" value="all" />
+                    <el-option label="短期" value="short" />
+                    <el-option label="中期" value="medium" />
+                    <el-option label="长期" value="long" />
+                  </el-select>
+                </div>
+              </div>
+
+              <div class="recommendation-cards">
+                <el-row :gutter="15">
+                  <el-col :span="8" v-for="recommendation in aiRecommendations" :key="recommendation.id">
+                    <el-card shadow="hover" class="recommendation-card">
+                      <div class="recommendation-header">
+                        <div class="recommendation-icon" :style="{ background: recommendation.color }">
+                          <i :class="recommendation.icon"></i>
+                        </div>
+                        <div class="recommendation-info">
+                          <h5>{{ recommendation.title }}</h5>
+                          <div class="recommendation-match">
+                            <el-progress 
+                              :percentage="recommendation.matchScore" 
+                              :color="getMatchScoreColor(recommendation.matchScore)"
+                              :stroke-width="6"
+                              :show-text="false"
+                            />
+                            <span class="match-text">匹配度 {{ recommendation.matchScore }}%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="recommendation-details">
+                        <div class="recommendation-description">{{ recommendation.description }}</div>
+                        <div class="recommendation-expected">
+                          <div class="expected-item">
+                            <span class="expected-label">预期节能率:</span>
+                            <span class="expected-value">{{ recommendation.expectedSaving }}%</span>
+                          </div>
+                          <div class="expected-item">
+                            <span class="expected-label">投资回报期:</span>
+                            <span class="expected-value">{{ recommendation.paybackPeriod }}月</span>
+                          </div>
+                          <div class="expected-item">
+                            <span class="expected-label">实施难度:</span>
+                            <span class="expected-value">{{ recommendation.difficulty }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="recommendation-actions">
+                        <el-button size="small" type="primary" @click="viewRecommendationDetail(recommendation)">
+                          查看详情
+                        </el-button>
+                        <el-button size="small" @click="applyRecommendation(recommendation)">
+                          应用策略
+                        </el-button>
+                      </div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <div class="ai-analysis-reports">
+                <div class="ai-reports-header">
+                  <h5><i class="fa fa-file-text"></i> AI策略推荐报告列表</h5>
+                  <el-button size="small" type="primary" text @click="viewAllRecommendationReports">
+                    查看全部
+                  </el-button>
+                </div>
+                <el-table :data="recommendationReports" size="small" style="width: 100%">
+                  <el-table-column prop="time" label="分析时间" min-width="100">
+                    <template #default="scope">
+                      {{ formatReportTime(scope.row.time) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="strategy" label="策略名称" min-width="120">
+                    <template #default="scope">
+                      {{ scope.row.strategy }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="category" label="策略类别" min-width="100">
+                    <template #default="scope">
+                      <el-tag 
+                        :type="getCategoryTagType(scope.row.category)" 
+                        size="small"
+                      >
+                        {{ scope.row.category }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="matchScore" label="匹配度" min-width="80">
+                    <template #default="scope">
+                      <el-progress 
+                        :percentage="scope.row.matchScore" 
+                        :stroke-width="6"
+                        :show-text="false"
+                        :color="getMatchScoreColor(scope.row.matchScore)"
+                      />
+                      <span class="sub-text">{{ scope.row.matchScore }}分</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="expectedSaving" label="节能率" min-width="80">
+                    <template #default="scope">
+                      {{ scope.row.expectedSaving }}%
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="investment" label="投资成本" min-width="100">
+                    <template #default="scope">
+                      ¥{{ scope.row.investment }}万
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="payback" label="回收期" min-width="80">
+                    <template #default="scope">
+                      {{ scope.row.payback }}年
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" min-width="100" fixed="right">
+                    <template #default="scope">
+                      <el-button type="primary" size="small" text @click="viewRecommendationReportDetail(scope.row)">
+                        查看详情
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+
+            <!-- 影响分析 -->
+            <div v-if="aiAnalysisType === 'impact'" class="impact-analysis">
+              <div class="ai-section-header">
+                <h4><i class="fa fa-chart-line"></i> 策略影响分析</h4>
+                <div class="impact-selector">
+                  <el-select v-model="selectedImpactStrategy" size="small" style="width: 150px;">
+                    <el-option 
+                      v-for="strategy in availableStrategies" 
+                      :key="strategy.id" 
+                      :label="strategy.name" 
+                      :value="strategy.id" 
+                    />
+                  </el-select>
+                </div>
+              </div>
+
+              <div class="impact-metrics">
+                <el-row :gutter="15">
+                  <el-col :span="6" v-for="metric in impactMetrics" :key="metric.name">
+                    <div class="impact-metric-card">
+                      <div class="impact-metric-icon" :style="{ background: metric.color }">
+                        <i :class="metric.icon"></i>
+                      </div>
+                      <div class="impact-metric-content">
+                        <div class="impact-metric-value">{{ metric.value }}</div>
+                        <div class="impact-metric-label">{{ metric.label }}</div>
+                        <div class="impact-metric-change" :class="metric.changeType">
+                          <i :class="metric.changeType === 'positive' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                          {{ metric.changeValue }}
+                        </div>
+                      </div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <div class="impact-charts">
+                <el-row :gutter="15">
+                  <el-col :span="12">
+                    <div class="impact-chart">
+                      <h5>能耗变化预测</h5>
+                      <div id="aiImpactEnergyChart" class="ai-chart-container"></div>
+                    </div>
+                  </el-col>
+                  <el-col :span="12">
+                    <div class="impact-chart">
+                      <h5>成本效益分析</h5>
+                      <div id="aiImpactCostChart" class="ai-chart-container"></div>
+                    </div>
+                  </el-col>
+                </el-row>
+              </div>
+
+              <div class="impact-summary">
+                <el-card shadow="hover" class="impact-summary-card">
+                  <h5><i class="fa fa-info-circle"></i> 影响分析总结</h5>
+                  <div class="impact-summary-content">
+                    <p v-for="summary in impactSummaries" :key="summary.id" class="impact-summary-item">
+                      <i :class="summary.icon"></i>
+                      {{ summary.content }}
+                    </p>
+                  </div>
+                </el-card>
+              </div>
+
+              <div class="ai-analysis-reports">
+                <div class="ai-reports-header">
+                  <h5><i class="fa fa-file-text"></i> AI影响分析报告列表</h5>
+                  <el-button size="small" type="primary" text @click="viewAllImpactReports">
+                    查看全部
+                  </el-button>
+                </div>
+                <el-table :data="impactReports" size="small" style="width: 100%">
+                  <el-table-column prop="time" label="分析时间" min-width="100">
+                    <template #default="scope">
+                      {{ formatReportTime(scope.row.time) }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="strategy" label="策略名称" min-width="120">
+                    <template #default="scope">
+                      {{ scope.row.strategy }}
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="energyReduction" label="节能效果" min-width="90">
+                    <template #default="scope">
+                      {{ scope.row.energyReduction }}%
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="costSaving" label="成本节约" min-width="90">
+                    <template #default="scope">
+                      ¥{{ scope.row.costSaving }}万
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="carbonReduction" label="碳减排" min-width="90">
+                    <template #default="scope">
+                      {{ scope.row.carbonReduction }}t
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="roi" label="ROI" min-width="80">
+                    <template #default="scope">
+                      <el-progress 
+                        :percentage="scope.row.roi * 4" 
+                        :stroke-width="6"
+                        :show-text="false"
+                        :color="getRoiColor(scope.row.roi)"
+                      />
+                      <span class="sub-text">{{ scope.row.roi }}%</span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="status" label="状态" min-width="90">
+                    <template #default="scope">
+                      <el-tag 
+                        :type="getStatusTagType(scope.row.status)" 
+                        size="small"
+                      >
+                        {{ getStatusName(scope.row.status) }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" min-width="100" fixed="right">
+                    <template #default="scope">
+                      <el-button type="primary" size="small" text @click="viewImpactReportDetail(scope.row)">
+                        查看详情
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </div>
+        </el-card>
+      </div>
+
       <div class="bottom-section">
         <el-row :gutter="20">
           <el-col :xs="24" :md="12" :lg="12" :xl="12">
@@ -522,7 +1032,7 @@
 import * as echarts from 'echarts'
 import { ref, reactive, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 export default {
   name: 'HomeEnhanced',
@@ -609,7 +1119,8 @@ export default {
         totalEnergy: 15000,
         totalCost: 12000,
         efficiencyIndex: 15,
-        alertCount: 10
+        alertCount: 10,
+        savingRate: 20
       }
     })
 
@@ -641,7 +1152,8 @@ export default {
         icon: 'fa fa-pie-chart',
         color: '#E6A23C',
         class: 'saving',
-        change: 3.2
+        change: 3.2,
+        threshold: thresholdForm.thresholds.savingRate || 20
       },
       {
         label: '能效指标',
@@ -850,7 +1362,7 @@ export default {
           width: '90%',
           height: '80%',
           breadcrumb: { show: false },
-          label: { show: true, formatter: '{b}\n{c} kWh' },
+          label: { show: true, formatter: '{b}\\n{c} kWh' },
           itemStyle: { borderColor: '#fff' },
           data: [
             { name: '候车厅', value: 45230, itemStyle: { color: '#409EFF' } },
@@ -1121,16 +1633,1275 @@ export default {
       return units[key] || ''
     }
 
+    // AI分析相关数据
+    const aiAnalysisType = ref('forecast')
+    const selectedAiModel = ref('lstm')
+    const selectedCorrelationMetric = ref('energy')
+    const correlationThreshold = ref(0.7)
+    const selectedImpactStrategy = ref('1')
+    const selectedTimeGranularity = ref('day')
+
+    const forecastModels = [
+      { id: 'lstm', name: 'LSTM神经网络', accuracy: '94.2%', description: '基于深度学习的时间序列预测模型' },
+      { id: 'prophet', name: 'Prophet模型', accuracy: '91.8%', description: 'Facebook开发的时间序列预测工具' },
+      { id: 'arima', name: 'ARIMA模型', accuracy: '89.5%', description: '经典的时间序列预测模型' },
+      { id: 'xgboost', name: 'XGBoost模型', accuracy: '92.7%', description: '梯度提升决策树模型' }
+    ]
+
+    const availableStrategies = [
+      { id: '1', name: '智能照明调节', category: '照明优化', expectedSaving: '15-20%' },
+      { id: '2', name: '空调系统优化', category: '暖通空调', expectedSaving: '25-30%' },
+      { id: '3', name: '电梯节能运行', category: '设备优化', expectedSaving: '8-12%' },
+      { id: '4', name: '能源管理系统', category: '综合管理', expectedSaving: '20-25%' }
+    ]
+
+    const correlationMetrics = [
+      { name: '能耗与客流', value: 0.85, description: '正相关关系强' },
+      { name: '温度与空调能耗', value: 0.92, description: '强正相关关系' },
+      { name: '照明与时间', value: -0.45, description: '中等负相关关系' },
+      { name: '设备效率与能耗', value: -0.78, description: '强负相关关系' }
+    ]
+
+    const forecastResults = ref([
+      { time: '2024-01', actual: 12543, predicted: 12380, accuracy: 98.7 },
+      { time: '2024-02', actual: 11890, predicted: 12150, accuracy: 97.8 },
+      { time: '2024-03', actual: 13200, predicted: 12980, accuracy: 98.3 },
+      { time: '2024-04', actual: 14150, predicted: 14200, accuracy: 99.6 },
+      { time: '2024-05', actual: 13890, predicted: 13750, accuracy: 99.0 },
+      { time: '2024-06', actual: 14560, predicted: 14420, accuracy: 99.0 }
+    ])
+
+    // AI分析卡片/报告演示数据
+    const forecastMetrics = ref([
+      { name: 'mae', label: '平均绝对误差', value: '2.4%', trend: 'down', change: 1.2 },
+      { name: 'rmse', label: '均方根误差', value: '3.1%', trend: 'down', change: 0.9 },
+      { name: 'mape', label: '平均绝对百分比误差', value: '1.8%', trend: 'down', change: 0.6 },
+      { name: 'r2', label: '拟合优度', value: '0.94', trend: 'up', change: 0.3 }
+    ])
+
+    const forecastInsights = ref([
+      { id: 'FI001', type: 'success', title: '高峰期预测准确', description: 'LSTM 模型在高峰期预测偏差控制在 2% 内。' },
+      { id: 'FI002', type: 'info', title: '节能目标接近达成', description: '未来两周总能耗较基准下降 6.5%，逼近 8% 目标。' },
+      { id: 'FI003', type: 'warning', title: '周末波动需关注', description: '周末客流异常会导致预测偏差上升，建议叠加客流特征。' }
+    ])
+
+    const correlationInsights = ref([
+      { id: 'CI001', strength: 'strong', strengthText: '强相关', systems: '能耗 ↔ 客流', description: '客流增加 10% 时总能耗提升约 8%。', recommendation: '高峰时段预置照明与空调策略。' },
+      { id: 'CI002', strength: 'strong', strengthText: '强相关', systems: '室外温度 ↔ 空调能耗', description: '温度每升高 1℃，空调能耗增加 2.3%。', recommendation: '结合天气预报提前 2 小时调整设定点。' },
+      { id: 'CI003', strength: 'negative', strengthText: '负相关', systems: '自然光 ↔ 照明能耗', description: '自然光强度提升会显著降低照明能耗。', recommendation: '开启按光照度动态调光，减少全亮时长。' }
+    ])
+
+    const aiRecommendations = ref([
+      {
+        id: 'AR001',
+        title: '智能照明调节',
+        description: '按客流与自然光自动调节亮度与开启时长。',
+        expectedSaving: 18.5,
+        paybackPeriod: 8,
+        difficulty: '低',
+        matchScore: 92,
+        icon: 'fa fa-lightbulb-o',
+        color: '#409EFF'
+      },
+      {
+        id: 'AR002',
+        title: '空调系统优化',
+        description: '基于预测与分区负荷的自适应送风/水系统调度。',
+        expectedSaving: 27.3,
+        paybackPeriod: 14,
+        difficulty: '中',
+        matchScore: 89,
+        icon: 'fa fa-snowflake-o',
+        color: '#67C23A'
+      },
+      {
+        id: 'AR003',
+        title: '电梯节能运行',
+        description: '高峰群控+低峰休眠，智能分配梯群负荷。',
+        expectedSaving: 10.2,
+        paybackPeriod: 6,
+        difficulty: '低',
+        matchScore: 76,
+        icon: 'fa fa-elevator',
+        color: '#E6A23C'
+      }
+    ])
+
+    const recommendationFilter = ref('all')
+
+    // AI分析报告数据
+    const forecastReports = ref([
+      {
+        id: 'FR001',
+        time: '2024-12-29 09:30:00',
+        model: 'lstm',
+        accuracy: 98.7,
+        prediction: 14560,
+        confidence: 95,
+        status: 'completed',
+        description: '基于LSTM神经网络的高精度能耗预测',
+        actualValue: 14320,
+        deviation: 1.7
+      },
+      {
+        id: 'FR002',
+        time: '2024-12-29 08:15:00',
+        model: 'prophet',
+        accuracy: 96.3,
+        prediction: 13200,
+        confidence: 92,
+        status: 'completed',
+        description: '基于Prophet模型的季节性能耗预测',
+        actualValue: 12890,
+        deviation: 2.4
+      },
+      {
+        id: 'FR003',
+        time: '2024-12-29 10:45:00',
+        model: 'arima',
+        accuracy: 94.1,
+        prediction: 11890,
+        confidence: 89,
+        status: 'completed',
+        description: '基于ARIMA模型的时间序列预测',
+        actualValue: 11650,
+        deviation: 2.1
+      },
+      {
+        id: 'FR004',
+        time: '2024-12-29 11:20:00',
+        model: 'xgboost',
+        accuracy: 97.5,
+        prediction: 13890,
+        confidence: 94,
+        status: 'completed',
+        description: '基于XGBoost的梯度提升预测',
+        actualValue: 13980,
+        deviation: 0.6
+      },
+      {
+        id: 'FR005',
+        time: '2024-12-29 12:30:00',
+        model: 'lstm',
+        accuracy: 99.2,
+        prediction: 15240,
+        confidence: 97,
+        status: 'completed',
+        description: 'LSTM模型多时段复合预测分析',
+        actualValue: 15180,
+        deviation: 0.4
+      }
+    ])
+
+    const correlationReports = ref([
+      {
+        id: 'CR001',
+        time: '2024-12-29 09:00:00',
+        model: 'correlation',
+        accuracy: 92.5,
+        prediction: 'r=0.85',
+        confidence: 90,
+        metric: 'energy_passenger',
+        coefficient: 0.85,
+        significance: 'high',
+        status: 'completed',
+        description: '能耗与客流量关联性分析',
+        insights: '客流量与总能耗呈现强正相关关系，相关系数0.85',
+        recommendation: '建议在客流高峰期优化能耗配置'
+      },
+      {
+        id: 'CR002',
+        time: '2024-12-29 08:30:00',
+        model: 'correlation',
+        accuracy: 94.1,
+        prediction: 'r=0.92',
+        confidence: 93,
+        metric: 'temperature_ac',
+        coefficient: 0.92,
+        significance: 'high',
+        status: 'completed',
+        description: '室外温度与空调能耗关联性分析',
+        insights: '空调能耗与室外温度呈现极强正相关，相关系数0.92',
+        recommendation: '建议基于天气预报调整空调策略'
+      },
+      {
+        id: 'CR003',
+        time: '2024-12-29 10:15:00',
+        model: 'correlation',
+        accuracy: 88.3,
+        prediction: 'r=-0.45',
+        confidence: 85,
+        metric: 'lighting_time',
+        coefficient: -0.45,
+        significance: 'medium',
+        status: 'completed',
+        description: '自然光照与照明能耗关联性分析',
+        insights: '照明能耗与自然光照呈现中等负相关，相关系数-0.45',
+        recommendation: '建议安装智能照明控制系统'
+      },
+      {
+        id: 'CR004',
+        time: '2024-12-29 11:00:00',
+        model: 'correlation',
+        accuracy: 91.6,
+        prediction: 'r=-0.78',
+        confidence: 89,
+        metric: 'equipment_efficiency',
+        coefficient: -0.78,
+        significance: 'high',
+        status: 'completed',
+        description: '设备效率与能耗关联性分析',
+        insights: '设备效率与能耗呈现强负相关，相关系数-0.78',
+        recommendation: '建议加强设备维护保养'
+      },
+      {
+        id: 'CR005',
+        time: '2024-12-29 13:45:00',
+        model: 'correlation',
+        accuracy: 87.2,
+        prediction: 'r=0.81',
+        confidence: 82,
+        metric: 'cost_tariff',
+        coefficient: 0.81,
+        significance: 'high',
+        status: 'processing',
+        description: '峰谷电价与总费用关联性分析',
+        insights: '正在进行峰谷电价影响分析',
+        recommendation: '待分析完成'
+      }
+    ])
+
+    const recommendationReports = ref([
+      {
+        id: 'RR001',
+        time: '2024-12-29 09:15:00',
+        model: 'recommendation',
+        accuracy: 93.2,
+        prediction: '节能率 18.5%',
+        confidence: 90,
+        strategy: '智能照明调节',
+        category: '照明优化',
+        matchScore: 92,
+        expectedSaving: 18.5,
+        investment: 50,
+        payback: 2.8,
+        status: 'completed',
+        description: '基于客流和自然光照的智能照明调节策略',
+        priority: 'high',
+        implementation: '分阶段实施，先试点后推广'
+      },
+      {
+        id: 'RR002',
+        time: '2024-12-29 08:45:00',
+        model: 'recommendation',
+        accuracy: 91.8,
+        prediction: '节能率 27.3%',
+        confidence: 88,
+        strategy: '空调系统优化',
+        category: '暖通空调',
+        matchScore: 89,
+        expectedSaving: 27.3,
+        investment: 120,
+        payback: 3.5,
+        status: 'completed',
+        description: '基于AI预测的空调系统智能调度策略',
+        priority: 'high',
+        implementation: '需要专业团队进行系统改造'
+      },
+      {
+        id: 'RR003',
+        time: '2024-12-29 10:30:00',
+        model: 'recommendation',
+        accuracy: 88.5,
+        prediction: '节能率 10.2%',
+        confidence: 84,
+        strategy: '电梯节能运行',
+        category: '设备优化',
+        matchScore: 76,
+        expectedSaving: 10.2,
+        investment: 30,
+        payback: 2.1,
+        status: 'completed',
+        description: '电梯运行模式优化策略',
+        priority: 'medium',
+        implementation: '软件升级为主，硬件改造为辅'
+      },
+      {
+        id: 'RR004',
+        time: '2024-12-29 11:15:00',
+        model: 'recommendation',
+        accuracy: 90.6,
+        prediction: '节能率 22.1%',
+        confidence: 86,
+        strategy: '能源管理系统',
+        category: '综合管理',
+        matchScore: 85,
+        expectedSaving: 22.1,
+        investment: 80,
+        payback: 3.2,
+        status: 'processing',
+        description: '综合能源监控与优化管理平台',
+        priority: 'high',
+        implementation: '需要建设完整的能源管理平台'
+      },
+      {
+        id: 'RR005',
+        time: '2024-12-29 13:20:00',
+        model: 'recommendation',
+        accuracy: 89.4,
+        prediction: '节能率 15.7%',
+        confidence: 83,
+        strategy: '余热回收利用',
+        category: '热能管理',
+        matchScore: 78,
+        expectedSaving: 15.7,
+        investment: 200,
+        payback: 4.8,
+        status: 'completed',
+        description: '回收设备运行产生的余热用于供暖和热水供应',
+        priority: 'medium',
+        implementation: '需要建设余热回收管道系统和换热设备'
+      }
+    ])
+
+    const impactReports = ref([
+      {
+        id: 'IR001',
+        time: '2024-12-29 09:30:00',
+        model: 'impact',
+        accuracy: 92.8,
+        prediction: 'ROI 18.5%',
+        confidence: 90,
+        strategy: '智能照明调节',
+        energyReduction: 15.8,
+        costSaving: 142,
+        carbonReduction: 126,
+        roi: 18.5,
+        status: 'completed',
+        description: '智能照明调节策略实施效果评估',
+        implementationPeriod: '3个月',
+        effectiveness: '显著'
+      },
+      {
+        id: 'IR002',
+        time: '2024-12-29 08:45:00',
+        model: 'impact',
+        accuracy: 94.1,
+        prediction: 'ROI 22.3%',
+        confidence: 92,
+        strategy: '空调系统优化',
+        energyReduction: 25.6,
+        costSaving: 289,
+        carbonReduction: 218,
+        roi: 22.3,
+        status: 'completed',
+        description: '空调系统优化策略实施效果评估',
+        implementationPeriod: '6个月',
+        effectiveness: '显著'
+      },
+      {
+        id: 'IR003',
+        time: '2024-12-29 10:20:00',
+        model: 'impact',
+        accuracy: 88.9,
+        prediction: 'ROI 12.1%',
+        confidence: 85,
+        strategy: '电梯节能运行',
+        energyReduction: 8.4,
+        costSaving: 67,
+        carbonReduction: 54,
+        roi: 12.1,
+        status: 'completed',
+        description: '电梯节能运行策略实施效果评估',
+        implementationPeriod: '1个月',
+        effectiveness: '良好'
+      },
+      {
+        id: 'IR004',
+        time: '2024-12-29 11:30:00',
+        model: 'impact',
+        accuracy: 90.3,
+        prediction: 'ROI 16.8%',
+        confidence: 87,
+        strategy: '能源管理系统',
+        energyReduction: 19.2,
+        costSaving: 195,
+        carbonReduction: 168,
+        roi: 16.8,
+        status: 'processing',
+        description: '能源管理系统策略实施效果评估',
+        implementationPeriod: '12个月',
+        effectiveness: '待验证'
+      },
+      {
+        id: 'IR005',
+        time: '2024-12-29 14:00:00',
+        model: 'impact',
+        accuracy: 86.5,
+        prediction: 'ROI 28.5%',
+        confidence: 83,
+        strategy: '设备升级改造',
+        energyReduction: 31.2,
+        costSaving: 378,
+        carbonReduction: 324,
+        roi: 28.5,
+        status: 'planning',
+        description: '设备升级改造策略预期效果评估',
+        implementationPeriod: '18个月',
+        effectiveness: '预期显著'
+      }
+    ])
+
+    const correlationResults = ref([
+      { metric1: '总能耗', metric2: '客流量', coefficient: 0.85, significance: 'high' },
+      { metric1: '空调能耗', metric2: '室外温度', coefficient: 0.92, significance: 'high' },
+      { metric1: '照明能耗', metric2: '自然光照', coefficient: -0.68, significance: 'medium' },
+      { metric1: '设备能耗', metric2: '运行时间', coefficient: 0.76, significance: 'high' },
+      { metric1: '总费用', metric2: '峰谷电价', coefficient: 0.81, significance: 'high' }
+    ])
+
+    const strategyResults = ref([
+      { 
+        strategy: '智能照明调节', 
+        score: 92, 
+        saving: '18.5%', 
+        investment: '50万', 
+        payback: '2.8年',
+        description: '根据客流和自然光照自动调节照明亮度'
+      },
+      { 
+        strategy: '空调系统优化', 
+        score: 89, 
+        saving: '27.3%', 
+        investment: '120万', 
+        payback: '3.5年',
+        description: '基于AI预测的空调系统智能调度'
+      },
+      { 
+        strategy: '能源管理系统', 
+        score: 85, 
+        saving: '22.1%', 
+        investment: '80万', 
+        payback: '3.2年',
+        description: '综合能源监控与优化管理平台'
+      }
+    ])
+
+    const impactMetrics = ref([
+      { 
+        name: '能耗降低', 
+        value: '15.8%', 
+        changeValue: '+2.3%', 
+        changeType: 'positive', 
+        icon: 'fa fa-bolt', 
+        color: '#409EFF' 
+      },
+      { 
+        name: '成本节约', 
+        value: '¥142万', 
+        changeValue: '+8.5万', 
+        changeType: 'positive', 
+        icon: 'fa fa-yen', 
+        color: '#67C23A' 
+      },
+      { 
+        name: '碳排放减少', 
+        value: '126吨', 
+        changeValue: '+12吨', 
+        changeType: 'positive', 
+        icon: 'fa fa-leaf', 
+        color: '#E6A23C' 
+      },
+      { 
+        name: '投资回报率', 
+        value: '18.5%', 
+        changeValue: '+1.2%', 
+        changeType: 'positive', 
+        icon: 'fa fa-line-chart', 
+        color: '#909399' 
+      }
+    ])
+
+    const impactSummaries = ref([
+      { 
+        id: 1, 
+        icon: 'fa fa-check-circle', 
+        content: '策略实施后预计年度节能率达到15.8%，超过预期目标5.8个百分点' 
+      },
+      { 
+        id: 2, 
+        icon: 'fa fa-clock', 
+        content: '预计投资回收期为2.8年，显著低于行业平均水平3.5年' 
+      },
+      { 
+        id: 3, 
+        icon: 'fa fa-shield', 
+        content: '系统可靠性提升12%，设备故障率降低8.5%' 
+      },
+      { 
+        id: 4, 
+        icon: 'fa fa-globe', 
+        content: '年度碳排放减少126吨，相当于种植6900棵树的环境效益' 
+      }
+    ])
+
+    // AI分析图表实例
+    let aiForecastChart = null
+    let aiCorrelationChart = null
+    let aiStrategyChart = null
+    let aiImpactEnergyChart = null
+    let aiImpactCostChart = null
+
+    // 初始化AI分析图表
+    const initAiAnalysisCharts = () => {
+      nextTick(() => {
+        // 预测分析图表
+        const forecastElement = document.getElementById('aiForecastChart')
+        if (forecastElement && !aiForecastChart) {
+          aiForecastChart = echarts.init(forecastElement)
+        }
+
+        // 关联性分析图表
+        const correlationElement = document.getElementById('aiCorrelationChart')
+        if (correlationElement && !aiCorrelationChart) {
+          aiCorrelationChart = echarts.init(correlationElement)
+        }
+
+        // 策略推荐图表
+        const strategyElement = document.getElementById('aiStrategyChart')
+        if (strategyElement && !aiStrategyChart) {
+          aiStrategyChart = echarts.init(strategyElement)
+        }
+
+        // 影响分析图表 - 能耗变化预测
+        const impactEnergyElement = document.getElementById('aiImpactEnergyChart')
+        if (impactEnergyElement && !aiImpactEnergyChart) {
+          aiImpactEnergyChart = echarts.init(impactEnergyElement)
+        }
+
+        // 影响分析图表 - 成本效益分析
+        const impactCostElement = document.getElementById('aiImpactCostChart')
+        if (impactCostElement && !aiImpactCostChart) {
+          aiImpactCostChart = echarts.init(impactCostElement)
+        }
+
+        // 渲染当前类型的图表
+        renderCurrentAiAnalysisChart()
+      })
+    }
+
+    // 渲染当前AI分析图表
+    const renderCurrentAiAnalysisChart = () => {
+      // 确保所有相关图表都已初始化
+      ensureAiChartsInitialized()
+      
+      switch (aiAnalysisType.value) {
+        case 'forecast':
+          if (aiForecastChart) {
+            renderAiForecastChart()
+          }
+          break
+        case 'correlation':
+          if (aiCorrelationChart) {
+            renderAiCorrelationChart()
+          }
+          break
+        case 'recommendation':
+          if (aiStrategyChart) {
+            renderAiStrategyChart()
+          }
+          break
+        case 'impact':
+          if (aiImpactEnergyChart && aiImpactCostChart) {
+            renderAiImpactCharts()
+          }
+          break
+      }
+    }
+
+    // 确保AI分析图表已初始化
+    const ensureAiChartsInitialized = () => {
+      nextTick(() => {
+        const forecastElement = document.getElementById('aiForecastChart')
+        if (forecastElement && !aiForecastChart) {
+          aiForecastChart = echarts.init(forecastElement)
+        }
+
+        const correlationElement = document.getElementById('aiCorrelationChart')
+        if (correlationElement && !aiCorrelationChart) {
+          aiCorrelationChart = echarts.init(correlationElement)
+        }
+
+        const strategyElement = document.getElementById('aiStrategyChart')
+        if (strategyElement && !aiStrategyChart) {
+          aiStrategyChart = echarts.init(strategyElement)
+        }
+
+        const impactEnergyElement = document.getElementById('aiImpactEnergyChart')
+        if (impactEnergyElement && !aiImpactEnergyChart) {
+          aiImpactEnergyChart = echarts.init(impactEnergyElement)
+        }
+
+        const impactCostElement = document.getElementById('aiImpactCostChart')
+        if (impactCostElement && !aiImpactCostChart) {
+          aiImpactCostChart = echarts.init(impactCostElement)
+        }
+      })
+    }
+
+    // 渲染AI预测分析图表
+    const renderAiForecastChart = () => {
+      if (!aiForecastChart) return
+
+      const option = {
+        tooltip: { 
+          trigger: 'axis',
+          formatter: (params) => {
+            const result = params[0]
+            return `${result.axisValue}<br/>
+                    实际值: ${result.value[1]} kWh<br/>
+                    预测值: ${result.value[2]} kWh<br/>
+                    准确率: ${forecastResults.value[result.dataIndex]?.accuracy}%`
+          }
+        },
+        legend: { data: ['实际能耗', '预测能耗', '预测区间'], bottom: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+        xAxis: { 
+          type: 'category', 
+          data: forecastResults.value.map(item => item.time) 
+        },
+        yAxis: { type: 'value', name: 'kWh' },
+        series: [
+          {
+            name: '实际能耗',
+            type: 'line',
+            data: forecastResults.value.map(item => item.actual),
+            itemStyle: { color: '#409EFF' },
+            lineStyle: { width: 3 }
+          },
+          {
+            name: '预测能耗',
+            type: 'line',
+            data: forecastResults.value.map(item => item.predicted),
+            itemStyle: { color: '#67C23A' },
+            lineStyle: { width: 3, type: 'dashed' }
+          },
+          {
+            name: '预测区间',
+            type: 'line',
+            stack: 'confidence',
+            symbol: 'none',
+            lineStyle: { opacity: 0 },
+            areaStyle: { opacity: 0.1 },
+            data: forecastResults.value.map((item, index) => [index, item.predicted - 500, item.predicted + 500])
+          }
+        ]
+      }
+      aiForecastChart.setOption(option)
+    }
+
+    // 渲染AI关联性分析图表
+    const renderAiCorrelationChart = () => {
+      if (!aiCorrelationChart) return
+
+      // 获取所有唯一指标
+      const allMetrics = new Set()
+      correlationResults.value.forEach(item => {
+        allMetrics.add(item.metric1)
+        allMetrics.add(item.metric2)
+      })
+      
+      const metrics = Array.from(allMetrics)
+      
+      // 创建数据矩阵
+      const data = correlationResults.value.map((item, index) => {
+        const metric1Index = metrics.indexOf(item.metric1)
+        const metric2Index = metrics.indexOf(item.metric2)
+        return [metric1Index, metric2Index, Math.abs(item.coefficient)]
+      })
+
+      const option = {
+        tooltip: {
+          position: 'top',
+          formatter: (params) => {
+            const [x, y, coefficient] = params.value
+            const metric1 = metrics[x]
+            const metric2 = metrics[y]
+            const result = correlationResults.value.find(r => 
+              (r.metric1 === metric1 && r.metric2 === metric2) ||
+              (r.metric1 === metric2 && r.metric2 === metric1)
+            )
+            return `${metric1} vs ${metric2}<br/>
+                    相关系数: ${result ? result.coefficient.toFixed(3) : coefficient.toFixed(3)}<br/>
+                    显著性: ${result?.significance || 'medium'}`
+          }
+        },
+        grid: { left: '10%', right: '10%', top: '10%', bottom: '15%' },
+        xAxis: {
+          type: 'category',
+          data: metrics,
+          axisLabel: { 
+            rotate: 45,
+            fontSize: 10
+          },
+          splitArea: { show: true }
+        },
+        yAxis: {
+          type: 'category',
+          data: metrics,
+          axisLabel: { fontSize: 10 },
+          splitArea: { show: true }
+        },
+        series: [{
+          name: '相关系数',
+          type: 'heatmap',
+          data: data,
+          label: { 
+            show: true,
+            formatter: (params) => params.value[2].toFixed(2)
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          },
+          itemStyle: {
+            color: (params) => {
+              const value = params.value[2]
+              if (value >= 0.8) return '#d73027'
+              if (value >= 0.6) return '#f46d43'
+              if (value >= 0.4) return '#fdae61'
+              if (value >= 0.2) return '#fee08b'
+              return '#e0f3f8'
+            }
+          }
+        }]
+      }
+      aiCorrelationChart.setOption(option)
+    }
+
+    // 渲染AI策略推荐图表
+    const renderAiStrategyChart = () => {
+      if (!aiStrategyChart) return
+
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' },
+          formatter: (params) => {
+            const data = params[0]
+            const strategy = strategyResults.value[data.dataIndex]
+            return `${strategy.strategy}<br/>
+                    综合评分: ${strategy.score}<br/>
+                    节能率: ${strategy.saving}<br/>
+                    投资: ${strategy.investment}<br/>
+                    回收期: ${strategy.payback}`
+          }
+        },
+        radar: {
+          indicator: [
+            { name: '节能效果', max: 100 },
+            { name: '投资回报', max: 100 },
+            { name: '技术成熟度', max: 100 },
+            { name: '实施难度', max: 100 },
+            { name: '环境效益', max: 100 }
+          ],
+          center: ['50%', '55%'],
+          radius: '60%'
+        },
+        series: [{
+          type: 'radar',
+          data: strategyResults.value.map((strategy, index) => ({
+            value: [
+              strategy.score,
+              Math.random() * 20 + 80,
+              Math.random() * 15 + 85,
+              Math.random() * 25 + 75,
+              Math.random() * 20 + 80
+            ],
+            name: strategy.strategy,
+            itemStyle: { 
+              color: ['#409EFF', '#67C23A', '#E6A23C'][index] 
+            }
+          }))
+        }]
+      }
+      aiStrategyChart.setOption(option)
+    }
+
+    // 渲染AI影响分析图表
+    const renderAiImpactCharts = () => {
+      // 获取当前选中策略的数据
+      const strategyData = getStrategyImpactData(selectedImpactStrategy.value)
+      
+      if (aiImpactEnergyChart) {
+        const option = {
+          tooltip: { trigger: 'axis' },
+          legend: { data: ['实施前', '实施后', '节能效果'], bottom: 0 },
+          grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+          xAxis: { 
+            type: 'category', 
+            data: ['1月', '2月', '3月', '4月', '5月', '6月'] 
+          },
+          yAxis: { type: 'value', name: '能耗(kWh)' },
+          series: [
+            {
+              name: '实施前',
+              type: 'line',
+              data: strategyData.beforeImplementation,
+              itemStyle: { color: '#909399' },
+              lineStyle: { type: 'dashed' }
+            },
+            {
+              name: '实施后',
+              type: 'line',
+              data: strategyData.afterImplementation,
+              itemStyle: { color: '#409EFF' },
+              lineStyle: { width: 3 }
+            },
+            {
+              name: '节能效果',
+              type: 'line',
+              data: strategyData.savings,
+              itemStyle: { color: '#67C23A' },
+              lineStyle: { type: 'dotted' }
+            }
+          ]
+        }
+        aiImpactEnergyChart.setOption(option)
+      }
+
+      if (aiImpactCostChart) {
+        const option = {
+          tooltip: { 
+            trigger: 'axis',
+            formatter: (params) => {
+              return params.map(param => 
+                `${param.seriesName}: ¥${param.value}万`
+              ).join('<br/>')
+            }
+          },
+          legend: { data: ['投资成本', '节能收益'], bottom: 0 },
+          grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+          xAxis: { 
+            type: 'category', 
+            data: ['第一年', '第二年', '第三年', '第四年', '第五年'] 
+          },
+          yAxis: { type: 'value', name: '金额(万元)' },
+          series: [
+            {
+              name: '投资成本',
+              type: 'bar',
+              data: strategyData.investmentCost,
+              itemStyle: { color: '#F56C6C' }
+            },
+            {
+              name: '节能收益',
+              type: 'bar',
+              data: strategyData.energySavings,
+              itemStyle: { color: '#67C23A' }
+            }
+          ]
+        }
+        aiImpactCostChart.setOption(option)
+      }
+      
+      // 更新影响分析总结
+      impactSummaries.value = strategyData.summary
+    }
+
+    // 获取策略影响数据
+    const getStrategyImpactData = (strategyId) => {
+      const strategyData = {
+        '1': { // 智能照明调节
+          beforeImplementation: [12543, 11890, 13200, 14150, 13890, 14560],
+          afterImplementation: [10560, 10020, 11120, 11930, 11710, 12270],
+          savings: [1983, 1870, 2080, 2220, 2180, 2290],
+          investmentCost: [0, 0, 0, 0, 0, 0],
+          energySavings: [18.5, 19.2, 20.8, 21.5, 22.1, 23.2],
+          summary: [
+            { icon: 'fa fa-lightbulb', content: '智能照明系统能根据客流密度自动调节亮度，实现按需照明。' },
+            { icon: 'fa fa-chart-line', content: '通过动态调光，预期可节约照明能耗15-20%。' },
+            { icon: 'fa fa-calendar', content: '系统可在非高峰时段自动降低照明亮度，无需人工干预。' },
+            { icon: 'fa fa-shield', content: '预计年度碳排放减少约120吨CO₂当量。' }
+          ]
+        },
+        '2': { // 空调系统优化
+          beforeImplementation: [12543, 11890, 13200, 14150, 13890, 14560],
+          afterImplementation: [10050, 9700, 10750, 11500, 11280, 11800],
+          savings: [2493, 2190, 2450, 2650, 2610, 2760],
+          investmentCost: [0, 0, 5, 0, 0, 0],
+          energySavings: [25.0, 25.8, 27.2, 28.5, 29.0, 30.2],
+          summary: [
+            { icon: 'fa fa-thermometer', content: '智能温控系统根据实际客流密度自动调节空调温度。' },
+            { icon: 'fa fa-clock-o', content: '系统可在非高峰时段适度提高空调设定温度，节约能耗。' },
+            { icon: 'fa fa-filter', content: '定期自动清洁空调过滤网，提高制冷效率。' },
+            { icon: 'fa fa-leaf', content: '预计年度碳排放减少约210吨CO₂当量。' }
+          ]
+        },
+        '3': { // 电梯节能运行
+          beforeImplementation: [12543, 11890, 13200, 14150, 13890, 14560],
+          afterImplementation: [11530, 10940, 12140, 13010, 12780, 13380],
+          savings: [1013, 950, 1060, 1140, 1110, 1180],
+          investmentCost: [0, 0, 0, 0, 0, 0],
+          energySavings: [9.5, 10.0, 10.8, 11.2, 11.5, 12.0],
+          summary: [
+            { icon: 'fa fa-arrows-alt', content: '电梯节能模式可根据客流情况动态调整运行策略。' },
+            { icon: 'fa fa-user-friends', content: '在低峰时段自动降低电梯运行频率，节约电力消耗。' },
+            { icon: 'fa fa-battery-three-quarters', content: '能量回收系统可在电梯下降时回收部分能量。' },
+            { icon: 'fa fa-cog', content: '预计年度碳排放减少约85吨CO₂当量。' }
+          ]
+        },
+        '4': { // 能源管理系统
+          beforeImplementation: [12543, 11890, 13200, 14150, 13890, 14560],
+          afterImplementation: [10300, 9800, 10900, 11700, 11480, 12000],
+          savings: [2243, 2090, 2300, 2450, 2410, 2560],
+          investmentCost: [0, 0, 2, 0, 0, 0],
+          energySavings: [21.0, 22.0, 23.5, 24.5, 25.0, 26.0],
+          summary: [
+            { icon: 'fa fa-dashboard', content: '智能能源管理系统整合各子系统数据，实现统一调度。' },
+            { icon: 'fa fa-cogs', content: '通过实时数据分析，识别能源使用模式和优化机会。' },
+            { icon: 'fa fa-lightbulb', content: '系统可预测未来能源需求，优化能源采购计划。' },
+            { icon: 'fa fa-chart-bar', content: '预计年度碳排放减少约180吨CO₂当量。' }
+          ]
+        }
+      }
+      return strategyData[strategyId] || strategyData['1']
+    }
+
+    // AI分析报告相关方法
+    const formatReportTime = (time) => {
+      const date = new Date(time)
+      return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+    }
+
+    const getModelTagType = (model) => {
+      const modelColors = {
+        lstm: 'primary',
+        prophet: 'success',
+        arima: 'warning',
+        xgboost: 'info',
+        correlation: 'warning',
+        recommendation: 'primary',
+        impact: 'success'
+      }
+      return modelColors[model] || 'default'
+    }
+
+    const getModelName = (model) => {
+      const modelNames = {
+        lstm: 'LSTM',
+        prophet: 'Prophet',
+        arima: 'ARIMA',
+        xgboost: 'XGBoost',
+        correlation: '相关性模型',
+        recommendation: '策略推荐模型',
+        impact: '影响分析模型'
+      }
+      return modelNames[model] || model
+    }
+
+    const getConfidenceColor = (confidence) => {
+      if (confidence >= 95) return '#67C23A'
+      if (confidence >= 90) return '#E6A23C'
+      return '#F56C6C'
+    }
+
+    const getMatchScoreColor = (score) => {
+      if (score >= 90) return '#67C23A'
+      if (score >= 75) return '#409EFF'
+      if (score >= 60) return '#E6A23C'
+      return '#F56C6C'
+    }
+
+    const getRoiColor = (roi) => {
+      if (roi >= 20) return '#67C23A'
+      if (roi >= 15) return '#409EFF'
+      if (roi >= 10) return '#E6A23C'
+      return '#F56C6C'
+    }
+
+    const getCategoryTagType = (category) => {
+      const mapping = {
+        照明优化: 'primary',
+        暖通空调: 'success',
+        设备优化: 'warning',
+        综合管理: 'info',
+        热能管理: 'danger'
+      }
+      return mapping[category] || 'info'
+    }
+
+    const getSignificanceTagType = (significance) => {
+      const significanceColors = {
+        high: 'danger',
+        medium: 'warning',
+        low: 'info'
+      }
+      return significanceColors[significance] || 'default'
+    }
+
+    const getSignificanceName = (significance) => {
+      const significanceNames = {
+        high: '高',
+        medium: '中',
+        low: '低'
+      }
+      return significanceNames[significance] || significance
+    }
+
+    const getCorrelationIcon = (strength) => {
+      const icons = {
+        strong: 'fa fa-level-up',
+        moderate: 'fa fa-exchange',
+        weak: 'fa fa-minus',
+        negative: 'fa fa-level-down'
+      }
+      return icons[strength] || 'fa fa-dot-circle-o'
+    }
+
+    const formatCorrelationTooltip = (value) => `${value.toFixed(1)}`
+
+    const getMetricName = (metric) => {
+      const metricNames = {
+        energy_passenger: '能耗与客流量',
+        temperature_ac: '温度与空调能耗',
+        lighting_time: '照明与时间',
+        equipment_efficiency: '设备效率与能耗',
+        cost_tariff: '成本与电价'
+      }
+      return metricNames[metric] || metric
+    }
+
+    const getPriorityTagType = (priority) => {
+      const priorityColors = {
+        high: 'danger',
+        medium: 'warning',
+        low: 'info'
+      }
+      return priorityColors[priority] || 'default'
+    }
+
+    const getPriorityName = (priority) => {
+      const priorityNames = {
+        high: '高',
+        medium: '中',
+        low: '低'
+      }
+      return priorityNames[priority] || priority
+    }
+
+    const getStatusTagType = (status) => {
+      const statusColors = {
+        completed: 'success',
+        processing: 'warning',
+        planning: 'info'
+      }
+      return statusColors[status] || 'default'
+    }
+
+    const getStatusName = (status) => {
+      const statusNames = {
+        completed: '已完成',
+        processing: '进行中',
+        planning: '计划中'
+      }
+      return statusNames[status] || status
+    }
+
+    // 预测分析报告方法
+    const viewForecastReportDetail = (report) => {
+      ElMessageBox.alert(
+        `<div style="line-height: 1.8;">
+          <h4>${report.description}</h4>
+          <p><strong>报告ID:</strong> ${report.id}</p>
+          <p><strong>分析时间:</strong> ${formatReportTime(report.time)}</p>
+          <p><strong>预测模型:</strong> ${getModelName(report.model)}</p>
+          <p><strong>预测值:</strong> ${report.prediction} kWh</p>
+          <p><strong>实际值:</strong> ${report.actualValue || '待更新'} ${report.actualValue ? 'kWh' : ''}</p>
+          <p><strong>准确率:</strong> ${report.accuracy}%</p>
+          <p><strong>置信度:</strong> ${report.confidence}%</p>
+          <p><strong>偏差:</strong> ${report.deviation ? report.deviation + '%' : '待计算'}</p>
+          <p><strong>状态:</strong> ${getStatusName(report.status)}</p>
+        </div>`,
+        '预测分析报告详情',
+        {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: '确定'
+        }
+      )
+    }
+
+    const viewAllForecastReports = () => {
+      ElMessage.info('跳转到预测分析报告管理页面')
+    }
+
+    // 关联性分析报告方法
+    const viewCorrelationReportDetail = (report) => {
+      ElMessageBox.alert(
+        `<div style="line-height: 1.8;">
+          <h4>${report.description}</h4>
+          <p><strong>报告ID:</strong> ${report.id}</p>
+          <p><strong>分析时间:</strong> ${formatReportTime(report.time)}</p>
+          <p><strong>相关系数:</strong> ${report.coefficient}</p>
+          <p><strong>显著性:</strong> ${getSignificanceName(report.significance)}</p>
+          <p><strong>分析洞察:</strong> ${report.insights}</p>
+          <p><strong>推荐建议:</strong> ${report.recommendation}</p>
+          <p><strong>状态:</strong> ${getStatusName(report.status)}</p>
+        </div>`,
+        '关联性分析报告详情',
+        {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: '确定'
+        }
+      )
+    }
+
+    const viewAllCorrelationReports = () => {
+      ElMessage.info('跳转到关联性分析报告管理页面')
+    }
+
+    // 策略推荐报告方法
+    const viewRecommendationReportDetail = (report) => {
+      ElMessageBox.alert(
+        `<div style="line-height: 1.8;">
+          <h4>${report.description}</h4>
+          <p><strong>报告ID:</strong> ${report.id}</p>
+          <p><strong>分析时间:</strong> ${formatReportTime(report.time)}</p>
+          <p><strong>策略名称:</strong> ${report.strategy}</p>
+          <p><strong>策略类别:</strong> ${report.category}</p>
+          <p><strong>匹配度:</strong> ${report.matchScore}%</p>
+          <p><strong>预期节能率:</strong> ${report.expectedSaving}%</p>
+          <p><strong>投资金额:</strong> ${report.investment}万元</p>
+          <p><strong>投资回报期:</strong> ${report.payback}年</p>
+          <p><strong>实施优先级:</strong> ${getPriorityName(report.priority)}</p>
+          <p><strong>实施方式:</strong> ${report.implementation}</p>
+          <p><strong>状态:</strong> ${getStatusName(report.status)}</p>
+        </div>`,
+        '策略推荐报告详情',
+        {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: '确定'
+        }
+      )
+    }
+
+    const viewAllRecommendationReports = () => {
+      ElMessage.info('跳转到策略推荐报告管理页面')
+    }
+
+    const viewRecommendationDetail = (recommendation) => {
+      ElMessage.info(`查看策略【${recommendation.title}】详情`)
+    }
+
+    const applyRecommendation = (recommendation) => {
+      ElMessage.success(`已将策略【${recommendation.title}】应用到当前站点`)
+    }
+
+    // 影响分析报告方法
+    const viewImpactReportDetail = (report) => {
+      ElMessageBox.alert(
+        `<div style="line-height: 1.8;">
+          <h4>${report.description}</h4>
+          <p><strong>报告ID:</strong> ${report.id}</p>
+          <p><strong>分析时间:</strong> ${formatReportTime(report.time)}</p>
+          <p><strong>策略名称:</strong> ${report.strategy}</p>
+          <p><strong>能耗降低:</strong> ${report.energyReduction}%</p>
+          <p><strong>成本节约:</strong> ${report.costSaving}万元</p>
+          <p><strong>碳排放减少:</strong> ${report.carbonReduction}吨</p>
+          <p><strong>投资回报率:</strong> ${report.roi}%</p>
+          <p><strong>实施周期:</strong> ${report.implementationPeriod}</p>
+          <p><strong>实施效果:</strong> ${report.effectiveness}</p>
+          <p><strong>状态:</strong> ${getStatusName(report.status)}</p>
+        </div>`,
+        '影响分析报告详情',
+        {
+          dangerouslyUseHTMLString: true,
+          confirmButtonText: '确定'
+        }
+      )
+    }
+
+    const viewAllImpactReports = () => {
+      ElMessage.info('跳转到影响分析报告管理页面')
+    }
+
+    // 刷新AI分析数据
+    const refreshAiAnalysis = () => {
+      ElMessage.success('AI分析数据已刷新')
+      
+      // 模拟数据更新
+      forecastResults.value = forecastResults.value.map(item => ({
+        ...item,
+        predicted: item.predicted + (Math.random() - 0.5) * 200,
+        accuracy: 95 + Math.random() * 4
+      }))
+
+      correlationResults.value = correlationResults.value.map(item => ({
+        ...item,
+        coefficient: item.coefficient + (Math.random() - 0.5) * 0.1
+      }))
+
+      // 重新渲染当前图表
+      setTimeout(() => {
+        renderCurrentAiAnalysisChart()
+      }, 100)
+    }
+
+    // AI分析图表类型切换时的专用刷新函数
+    const refreshAiAnalysisOnTypeChange = () => {
+      console.log('AI分析类型已切换到:', aiAnalysisType.value)
+      
+      // 重新初始化图表
+      initAiAnalysisCharts()
+      
+      // 延迟渲染确保DOM更新完成
+      setTimeout(() => {
+        renderCurrentAiAnalysisChart()
+      }, 200)
+    }
+
+    // 监听器
     watch(compareMetric, () => {
       renderMultiStationCompareChart()
     })
 
+    watch(aiAnalysisType, () => {
+      nextTick(() => {
+        // 使用专用的类型切换刷新函数
+        refreshAiAnalysisOnTypeChange()
+      })
+    })
+
+    // 监听策略选择变化，动态更新影响分析图表
+    watch(selectedImpactStrategy, () => {
+      console.log('策略已切换到:', selectedImpactStrategy.value)
+      nextTick(() => {
+        // 确保图表已初始化
+        const impactEnergyElement = document.getElementById('aiImpactEnergyChart')
+        const impactCostElement = document.getElementById('aiImpactCostChart')
+        
+        if (impactEnergyElement && !aiImpactEnergyChart) {
+          aiImpactEnergyChart = echarts.init(impactEnergyElement)
+        }
+        
+        if (impactCostElement && !aiImpactCostChart) {
+          aiImpactCostChart = echarts.init(impactCostElement)
+        }
+        
+        renderAiImpactCharts()
+      })
+    })
+
+    // 生命周期钩子
     onMounted(() => {
       const savedDarkMode = localStorage.getItem('darkMode') === 'true'
       isDarkMode.value = savedDarkMode
       document.body.classList.toggle('dark-mode', savedDarkMode)
       nextTick(() => {
         initCharts()
+        initAiAnalysisCharts()
       })
       resizeHandler = handleResize
       window.addEventListener('resize', resizeHandler)
@@ -1149,6 +2920,11 @@ export default {
       if (deviceEnergyChart) deviceEnergyChart.dispose()
       if (multiStationCompareChart) multiStationCompareChart.dispose()
       if (stationMapChart) stationMapChart.dispose()
+      if (aiForecastChart) aiForecastChart.dispose()
+      if (aiCorrelationChart) aiCorrelationChart.dispose()
+      if (aiStrategyChart) aiStrategyChart.dispose()
+      if (aiImpactEnergyChart) aiImpactEnergyChart.dispose()
+      if (aiImpactCostChart) aiImpactCostChart.dispose()
     })
 
     return {
@@ -1173,6 +2949,29 @@ export default {
       stationRankings,
       multiStationStats,
       pendingAlertCount,
+      // AI分析相关数据
+      aiAnalysisType,
+      selectedAiModel,
+      selectedCorrelationMetric,
+      selectedImpactStrategy,
+      forecastModels,
+      availableStrategies,
+      correlationMetrics,
+      forecastResults,
+      forecastMetrics,
+      forecastInsights,
+      correlationResults,
+      strategyResults,
+      impactMetrics,
+      impactSummaries,
+      correlationInsights,
+      aiRecommendations,
+      recommendationFilter,
+      forecastReports,
+      correlationReports,
+      recommendationReports,
+      impactReports,
+      refreshAiAnalysis,
       refreshData,
       handleRefreshIntervalChange,
       handleExport,
@@ -1199,10 +2998,33 @@ export default {
       viewAreaDetail,
       viewAllAlerts,
       viewStationDetail,
+      formatReportTime,
       savePersonalizeConfig,
       saveThresholdConfig,
       getThresholdLabel,
-      getThresholdUnit
+      getThresholdUnit,
+      getConfidenceColor,
+      getMatchScoreColor,
+      getRoiColor,
+      getCategoryTagType,
+      getCorrelationIcon,
+      formatCorrelationTooltip,
+      viewRecommendationDetail,
+      applyRecommendation,
+      getModelTagType,
+      getModelName,
+      getMetricName,
+      getSignificanceTagType,
+      getSignificanceName,
+      getPriorityTagType,
+      getPriorityName,
+      getStatusTagType,
+      getStatusName,
+      correlationThreshold,
+      viewAllForecastReports,
+      viewAllCorrelationReports,
+      viewAllRecommendationReports,
+      viewAllImpactReports
     }
   }
 }
@@ -1210,9 +3032,21 @@ export default {
 
 <style scoped>
 .home-container {
+  --brand-primary: #1890ff;
+  --brand-success: #52c41a;
+  --brand-warning: #faad14;
+  --brand-danger: #f5222d;
+  --brand-info: #909399;
+  --text-title: #1d2129;
+  --text-sub: #4e5969;
+  --card-radius: 12px;
+  --icon-size: 48px;
+  --control-height: 36px;
+  --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+
   min-height: 100vh;
   background: #f5f7fa;
-  padding: 20px;
+  padding: 16px;
 }
 
 .dark-mode {
@@ -1228,14 +3062,14 @@ export default {
   color: #e0e0e0;
 }
 
-.dark-mode .indicator-card {
+.dark-mode .indicator-card,
+.dark-mode .stat-card {
   background: #16213e;
   border-color: #0f3460;
   color: #e0e0e0;
 }
 
-.dark-mode .ranking-item,
-.dark-mode .stat-card {
+.dark-mode .ranking-item {
   background: #16213e;
   border-color: #0f3460;
   color: #e0e0e0;
@@ -1245,24 +3079,24 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 15px 20px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
 }
 
 .header-left h2 {
   margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #1d2129;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-title);
 }
 
 .dark-mode .header-left h2 {
@@ -1271,22 +3105,40 @@ export default {
 
 .header-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.header-actions :deep(.el-button) {
+  height: 32px;
+  min-width: 88px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-actions :deep(.el-button .fa) {
+  margin-right: 6px;
+  font-size: 14px;
 }
 
 .advanced-filter {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .filter-card {
-  border-radius: 8px;
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid #e8ecf3;
+  padding: 12px 14px;
 }
 
 .filter-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
   align-items: center;
 }
 
@@ -1298,46 +3150,95 @@ export default {
 
 .filter-item label {
   font-size: 14px;
-  color: #4e5969;
+  color: var(--text-sub);
   white-space: nowrap;
 }
 
+.filter-item :deep(.el-input__wrapper),
+.filter-item :deep(.el-select .el-input__wrapper) {
+  border-radius: 10px;
+  border: 1px solid #e2e7f0;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  height: 34px;
+}
+
+.filter-item :deep(.el-date-editor .el-input__wrapper) {
+  border-radius: 10px;
+  height: 34px;
+}
+
+.filter-item :deep(.el-select) {
+  width: 100%;
+  max-width: 240px;
+}
+
+.filter-item :deep(.el-input__inner) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.filter-item :deep(.el-select__caret) {
+  color: #8a97ab;
+}
+
+.filter-content :deep(.el-select),
+.filter-content :deep(.el-date-editor) {
+  width: 100%;
+}
+
+.filter-content :deep(.el-input__inner) {
+  height: var(--control-height);
+}
+
 .view-switcher {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-switcher :deep(.el-radio-button__inner) {
+  padding: 8px 18px;
+  height: var(--control-height);
+  display: inline-flex;
   align-items: center;
 }
 
 .core-indicators {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .indicator-card {
-  border-radius: 8px;
-  margin-bottom: 20px;
-  transition: all 0.3s;
+  border-radius: var(--card-radius);
+  margin-bottom: 12px;
+  transition: all 0.25s;
+  box-shadow: var(--card-shadow);
 }
 
 .indicator-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
 }
 
 .indicator-content {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
 }
 
-.indicator-icon {
-  width: 56px;
-  height: 56px;
+.indicator-icon,
+.stat-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 24px;
+  font-size: 22px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .indicator-info {
@@ -1352,8 +3253,9 @@ export default {
 
 .indicator-value {
   font-size: 24px;
-  font-weight: 600;
-  color: #1d2129;
+  font-weight: 700;
+  color: var(--text-title);
+  line-height: 1.2;
 }
 
 .dark-mode .indicator-value {
@@ -1362,8 +3264,9 @@ export default {
 
 .indicator-value .unit {
   font-size: 14px;
-  font-weight: normal;
+  font-weight: 500;
   color: #86909c;
+  margin-left: 4px;
 }
 
 .indicator-threshold {
@@ -1381,11 +3284,11 @@ export default {
 }
 
 .indicator-change .increase {
-  color: #f56c6c;
+  color: var(--brand-danger);
 }
 
 .indicator-change .decrease {
-  color: #67c23a;
+  color: var(--brand-success);
 }
 
 .change-text {
@@ -1395,29 +3298,34 @@ export default {
 }
 
 .energy-trend {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .energy-structure {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .analysis-section {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .bottom-section {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .chart-container {
-  height: 350px;
+  height: 320px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-header span {
+  font-weight: 600;
+  color: var(--text-title);
 }
 
 .chart-actions {
@@ -1434,14 +3342,16 @@ export default {
   display: flex;
   align-items: center;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   margin-bottom: 8px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  border: 1px solid #f0f0f0;
 }
 
 .ranking-item:hover {
   background: #f5f7fa;
+  border-color: #e6f0ff;
 }
 
 .dark-mode .ranking-item:hover {
@@ -1455,7 +3365,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #fff;
   margin-right: 12px;
@@ -1469,7 +3379,7 @@ export default {
 .ranking-name {
   flex: 1;
   font-size: 14px;
-  color: #1d2129;
+  color: var(--text-title);
 }
 
 .dark-mode .ranking-name {
@@ -1478,7 +3388,7 @@ export default {
 
 .ranking-value {
   font-size: 14px;
-  color: #1d2129;
+  color: var(--text-title);
   margin: 0 15px;
   width: 100px;
   text-align: right;
@@ -1507,33 +3417,35 @@ export default {
 }
 
 .multi-station-view {
-  margin-top: 20px;
+  margin-top: 14px;
 }
 
 .multi-station-header {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .stat-card {
-  border-radius: 8px;
-  margin-bottom: 20px;
+  border-radius: var(--card-radius);
+  margin-bottom: 16px;
+  box-shadow: var(--card-shadow);
 }
 
 .stat-content {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 14px;
 }
 
 .stat-icon {
-  width: 56px;
-  height: 56px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 24px;
+  font-size: 22px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .stat-info {
@@ -1542,8 +3454,8 @@ export default {
 
 .stat-value {
   font-size: 24px;
-  font-weight: 600;
-  color: #1d2129;
+  font-weight: 700;
+  color: var(--text-title);
 }
 
 .dark-mode .stat-value {
@@ -1556,11 +3468,11 @@ export default {
 }
 
 .multi-station-charts {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .multi-station-table {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .alert-detail {
@@ -1572,8 +3484,12 @@ export default {
   padding: 10px 0;
 }
 
+::deep(.el-card) {
+  border-radius: var(--card-radius);
+}
+
 :deep(.el-card__header) {
-  padding: 15px 20px;
+  padding: 14px 18px;
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -1582,7 +3498,7 @@ export default {
 }
 
 :deep(.el-dialog__header) {
-  padding: 20px;
+  padding: 18px 20px;
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -1594,10 +3510,19 @@ export default {
   width: 120px;
 }
 
+::deep(.el-card) {
+  border-radius: var(--card-radius);
+}
+
+::deep(.el-dialog__header) {
+  padding: 18px 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: flex-start;
   }
 
@@ -1607,12 +3532,7 @@ export default {
   }
 
   .filter-content {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .filter-item {
-    width: 100%;
+    grid-template-columns: 1fr;
   }
 
   .indicator-content {
@@ -1622,6 +3542,489 @@ export default {
 
   .chart-container {
     height: 280px;
+  }
+}
+
+/* AI分析报告样式 */
+.ai-analysis-section {
+  margin-bottom: 14px;
+}
+
+.ai-analysis-reports {
+  margin-top: 12px;
+}
+
+.ai-analysis-reports .sub-text {
+  font-size: 12px;
+  color: var(--text-sub);
+  margin-left: 4px;
+}
+
+.ai-analysis-reports :deep(.el-table) {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e8ecf3;
+}
+
+.ai-analysis-reports :deep(.el-table__header th) {
+  background: #f6f8fb;
+  color: #4e5969;
+  font-weight: 600;
+  height: 44px;
+}
+
+.ai-analysis-reports :deep(.el-table__body tr) {
+  transition: background-color 0.2s ease;
+}
+
+.ai-analysis-reports :deep(.el-table__body tr:hover) {
+  background: #f9fbff;
+}
+
+.ai-analysis-reports :deep(.el-table__row .el-progress) {
+  margin-top: 2px;
+}
+
+.ai-analysis-reports :deep(.el-tag) {
+  border-radius: 10px;
+}
+
+.ai-analysis-reports :deep(.el-button.is-text) {
+  color: var(--brand-primary);
+}
+
+.ai-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ai-analysis-content {
+  min-height: 340px;
+}
+
+.ai-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.ai-section-header h4 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dark-mode .ai-section-header {
+  border-bottom-color: #0f3460;
+}
+
+.dark-mode .ai-section-header h4 {
+  color: #e0e0e0;
+}
+
+/* 预测分析样式 */
+.forecast-metrics {
+  margin-bottom: 20px;
+}
+
+.ai-metric-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.ai-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dark-mode .ai-metric-card {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+.ai-metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.ai-metric-label {
+  font-size: 14px;
+  color: #86909c;
+  margin-bottom: 8px;
+}
+
+.ai-metric-trend {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.ai-metric-trend.up {
+  color: #52c41a;
+}
+
+.ai-metric-trend.down {
+  color: #f5222d;
+}
+
+.ai-chart-container {
+  height: 280px;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.forecast-insight {
+  margin-bottom: 10px;
+}
+
+.forecast-insight:last-child {
+  margin-bottom: 0;
+}
+
+/* 关联性分析样式 */
+.correlation-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.correlation-threshold-label {
+  font-size: 14px;
+  color: #86909c;
+  min-width: 60px;
+}
+
+.correlation-matrix {
+  margin-bottom: 20px;
+}
+
+.correlation-insights {
+  margin-top: 20px;
+}
+
+.correlation-insight-card {
+  height: 160px;
+  padding: 15px;
+}
+
+.correlation-strength {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.correlation-strength.strong {
+  color: #52c41a;
+}
+
+.correlation-strength.moderate {
+  color: #faad14;
+}
+
+.correlation-strength.weak {
+  color: #86909c;
+}
+
+.correlation-strength.negative {
+  color: #f5222d;
+}
+
+.correlation-systems {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-title);
+  margin-bottom: 8px;
+}
+
+.correlation-description {
+  font-size: 12px;
+  color: #86909c;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.correlation-recommendation {
+  font-size: 12px;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* 策略推荐样式 */
+.recommendation-cards {
+  margin-top: 14px;
+}
+
+.recommendation-card {
+  height: 260px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recommendation-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.recommendation-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.recommendation-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.recommendation-info h5 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.recommendation-match {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.match-text {
+  font-size: 12px;
+  color: #86909c;
+}
+
+.recommendation-details {
+  flex: 1;
+  margin-bottom: 15px;
+}
+
+.recommendation-description {
+  font-size: 14px;
+  color: var(--text-content);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.recommendation-expected {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.expected-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.expected-label {
+  color: #86909c;
+}
+
+.expected-value {
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+.recommendation-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+/* 影响分析样式 */
+.impact-metrics {
+  margin-bottom: 14px;
+}
+
+.impact-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.impact-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dark-mode .impact-metric-card {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+.impact-metric-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.impact-metric-content {
+  flex: 1;
+}
+
+.impact-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-title);
+  margin-bottom: 4px;
+}
+
+.impact-metric-label {
+  font-size: 14px;
+  color: #86909c;
+  margin-bottom: 4px;
+}
+
+.impact-metric-change {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.impact-metric-change.positive {
+  color: #52c41a;
+}
+
+.impact-metric-change.negative {
+  color: #f5222d;
+}
+
+.impact-charts {
+  margin-bottom: 14px;
+}
+
+.impact-chart {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.dark-mode .impact-chart {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+.impact-chart h5 {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.impact-summary-card {
+  background: #f0f9ff;
+  border-color: #409eff;
+}
+
+.dark-mode .impact-summary-card {
+  background: #1a2332;
+  border-color: #409eff;
+}
+
+.impact-summary-card h5 {
+  margin: 0 0 15px 0;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.impact-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-summary-item {
+  font-size: 14px;
+  color: var(--text-content);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+
+.impact-summary-item i {
+  color: var(--primary-color);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* AI分析响应式设计 */
+@media (max-width: 768px) {
+  .ai-section-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .correlation-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .correlation-threshold-label {
+    align-self: center;
+  }
+  
+  .recommendation-card {
+    height: auto;
+    min-height: 280px;
+  }
+  
+  .impact-metric-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .impact-charts .el-col {
+    margin-bottom: 15px;
   }
 }
 </style>

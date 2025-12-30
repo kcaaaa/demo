@@ -31,6 +31,9 @@
               <div class="indicator-info">
                 <div class="indicator-label">总能耗</div>
                 <div class="indicator-value">{{ coreIndicators.totalEnergy }} kWh</div>
+                <div class="indicator-threshold">
+                  <span>目标值: {{ coreIndicators.totalEnergyTarget }} kWh</span>
+                </div>
                 <div class="indicator-change">
                   <span :class="coreIndicators.totalEnergyChange > 0 ? 'increase' : 'decrease'">
                     <i class="fa" :class="coreIndicators.totalEnergyChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
@@ -51,6 +54,9 @@
               <div class="indicator-info">
                 <div class="indicator-label">总费用</div>
                 <div class="indicator-value">¥{{ coreIndicators.totalCost }}</div>
+                <div class="indicator-threshold">
+                  <span>目标值: ¥{{ coreIndicators.totalCostTarget }}</span>
+                </div>
                 <div class="indicator-change">
                   <span :class="coreIndicators.totalCostChange > 0 ? 'increase' : 'decrease'">
                     <i class="fa" :class="coreIndicators.totalCostChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down'">
@@ -70,13 +76,16 @@
                 <i class="fa fa-line-chart"></i>
               </div>
               <div class="indicator-info">
-                <div class="indicator-label">能效指标</div>
-                <div class="indicator-value">{{ coreIndicators.efficiencyIndex }} kgce/人</div>
+                <div class="indicator-label">节能率</div>
+                <div class="indicator-value">{{ coreIndicators.energySavingRate }}%</div>
+                <div class="indicator-threshold">
+                  <span>目标值: {{ coreIndicators.energySavingRateTarget }}%</span>
+                </div>
                 <div class="indicator-change">
-                  <span :class="coreIndicators.efficiencyIndexChange > 0 ? 'increase' : 'decrease'">
-                    <i class="fa" :class="coreIndicators.efficiencyIndexChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down'">
+                  <span :class="coreIndicators.energySavingRateChange > 0 ? 'increase' : 'decrease'">
+                    <i class="fa" :class="coreIndicators.energySavingRateChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down'">
                     </i>
-                    {{ Math.abs(coreIndicators.efficiencyIndexChange) }}%
+                    {{ Math.abs(coreIndicators.energySavingRateChange) }}%
                   </span>
                   <span class="change-text">较昨日</span>
                 </div>
@@ -93,6 +102,9 @@
               <div class="indicator-info">
                 <div class="indicator-label">预警数量</div>
                 <div class="indicator-value">{{ coreIndicators.alertCount }}</div>
+                <div class="indicator-threshold">
+                  <span>目标值: {{ coreIndicators.alertCountTarget }}</span>
+                </div>
                 <div class="indicator-change">
                   <span :class="coreIndicators.alertCountChange > 0 ? 'increase' : 'decrease'">
                     <i class="fa" :class="coreIndicators.alertCountChange > 0 ? 'fa-arrow-up' : 'fa-arrow-down'">
@@ -235,12 +247,16 @@ export default {
     // 核心指标数据
     const coreIndicators = reactive({
       totalEnergy: 12543.6,
+      totalEnergyTarget: 12000,
       totalEnergyChange: -2.3,
       totalCost: 8960.5,
+      totalCostTarget: 8500,
       totalCostChange: -1.8,
       efficiencyIndex: 12.5,
+      efficiencyIndexTarget: 15.0,
       efficiencyIndexChange: -0.5,
       alertCount: 12,
+      alertCountTarget: 5,
       alertCountChange: 15.4
     })
 
@@ -630,13 +646,21 @@ export default {
 }
 
 .indicator-card {
-  height: 100%;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
+  max-height: 140px;
+  box-sizing: border-box;
 }
 
 .indicator-content {
+  height: 100%;
   display: flex;
   align-items: center;
-  padding: 10px 0;
+  justify-content: space-between;
+  padding: 15px;
+  box-sizing: border-box;
 }
 
 .indicator-icon {
@@ -681,6 +705,12 @@ export default {
   font-size: 24px;
   font-weight: 600;
   color: #303133;
+  margin-bottom: 5px;
+}
+
+.indicator-threshold {
+  font-size: 12px;
+  color: #909399;
   margin-bottom: 5px;
 }
 

@@ -96,12 +96,219 @@
 
     <div class="view-switcher">
       <el-radio-group v-model="currentView" @change="handleViewChange">
-        <el-radio-button label="single">单站看板</el-radio-button>
-        <el-radio-button label="multi">多站仪表盘</el-radio-button>
+        <el-radio-button value="single">单站看板</el-radio-button>
+        <el-radio-button value="multi">多站仪表盘</el-radio-button>
       </el-radio-group>
       <el-select v-if="currentView === 'single'" v-model="selectedStation" size="small" style="margin-left: 10px;">
         <el-option v-for="station in stations" :key="station.id" :label="station.name" :value="station.id" />
       </el-select>
+    </div>
+
+    <!-- AI分析筛选组件 -->
+    <div class="ai-analysis-filter">
+      <el-card shadow="hover" class="filter-card">
+        <div class="filter-content">
+          <div class="filter-header">
+            <h3><i class="fa fa-brain"></i> AI分析筛选</h3>
+            <el-button size="small" @click="generateAiAnalysis" type="primary">
+              <i class="fa fa-magic"></i> 生成分析报告
+            </el-button>
+          </div>
+          <div class="filter-controls">
+            <div class="filter-item">
+              <label>分析时间范围:</label>
+              <el-date-picker
+                v-model="aiAnalysisFilter.timeRange"
+                type="monthrange"
+                range-separator="至"
+                start-placeholder="开始月份"
+                end-placeholder="结束月份"
+                format="YYYY年MM月"
+                value-format="YYYY-MM"
+                size="small"
+                :default-value="['2025-10', '2025-11']"
+              />
+            </div>
+            <div class="filter-item">
+              <label>站点选择:</label>
+              <el-select 
+                v-model="aiAnalysisFilter.selectedStations" 
+                multiple 
+                filterable 
+                collapse-tags
+                placeholder="选择站点（支持多选）" 
+                size="small"
+                style="width: 250px;"
+              >
+                <el-option
+                  v-for="station in allStations"
+                  :key="station.id"
+                  :label="station.name"
+                  :value="station.id"
+                >
+                  <div class="station-option">
+                    <span>{{ station.name }}</span>
+                    <el-tag size="small" :type="getStationTypeTag(station.type)">{{ station.typeName }}</el-tag>
+                  </div>
+                </el-option>
+              </el-select>
+            </div>
+            <div class="filter-item">
+              <label>分析类型:</label>
+              <el-select v-model="aiAnalysisFilter.analysisType" placeholder="选择分析类型" size="small" style="width: 180px;">
+                <el-option label="综合分析" value="comprehensive" />
+                <el-option label="能耗趋势分析" value="trend" />
+                <el-option label="设备效率分析" value="efficiency" />
+                <el-option label="节能效果分析" value="saving" />
+              </el-select>
+            </div>
+            <div class="filter-item">
+              <el-button size="small" @click="resetAiFilters" style="margin-right: 10px;">
+                <i class="fa fa-refresh"></i> 重置
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- AI分析结果汇总展示 -->
+    <div v-if="aiAnalysisResults.show" class="ai-analysis-summary">
+      <el-card shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span><i class="fa fa-chart-line"></i> AI分析汇总报告</span>
+            <div class="summary-actions">
+              <el-button size="small" @click="exportAiAnalysis" type="primary" link>
+                <i class="fa fa-download"></i> 导出报告
+              </el-button>
+              <el-button size="small" @click="viewFullAnalysis" link>
+                <i class="fa fa-eye"></i> 查看详细
+              </el-button>
+            </div>
+          </div>
+        </template>
+
+        <div class="summary-content">
+          <!-- 数据来源统计 -->
+          <div class="summary-section">
+            <h4><i class="fa fa-database"></i> 数据来源统计</h4>
+            <el-row :gutter="20">
+              <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fa fa-building"></i>
+                  </div>
+                  <div class="stat-info">
+                    <div class="stat-value">{{ aiAnalysisResults.dataStats.stationCount }}</div>
+                    <div class="stat-label">涉及站点</div>
+                  </div>
+                </div>
+              </el-col>
+              <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fa fa-calendar"></i>
+                  </div>
+                  <div class="stat-info">
+                    <div class="stat-value">{{ aiAnalysisResults.dataStats.daysCount }}</div>
+                    <div class="stat-label">分析天数</div>
+                  </div>
+                </div>
+              </el-col>
+              <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fa fa-cog"></i>
+                  </div>
+                  <div class="stat-info">
+                    <div class="stat-value">{{ aiAnalysisResults.dataStats.deviceCount }}</div>
+                    <div class="stat-label">设备数量</div>
+                  </div>
+                </div>
+              </el-col>
+              <el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
+                <div class="stat-card">
+                  <div class="stat-icon">
+                    <i class="fa fa-bolt"></i>
+                  </div>
+                  <div class="stat-info">
+                    <div class="stat-value">{{ aiAnalysisResults.dataStats.totalEnergy }}</div>
+                    <div class="stat-label">总能耗(kWh)</div>
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+
+          <!-- 关键发现 -->
+          <div class="summary-section">
+            <h4><i class="fa fa-lightbulb-o"></i> 关键发现</h4>
+            <div class="findings-grid">
+              <div v-for="finding in aiAnalysisResults.keyFindings" :key="finding.id" class="finding-card">
+                <div class="finding-header">
+                  <span class="finding-icon" :class="finding.type">
+                    <i :class="finding.icon"></i>
+                  </span>
+                  <span class="finding-title">{{ finding.title }}</span>
+                </div>
+                <div class="finding-content">
+                  <p class="finding-description">{{ finding.description }}</p>
+                  <div class="finding-metric">
+                    <span class="metric-label">关键指标:</span>
+                    <span class="metric-value" :class="finding.metricTrend">
+                      {{ finding.metricValue }}
+                      <i :class="finding.metricTrend === 'up' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 趋势分析 -->
+          <div class="summary-section">
+            <h4><i class="fa fa-trending-up"></i> 趋势分析</h4>
+            <el-row :gutter="20">
+              <el-col :xs="24" :lg="16">
+                <div class="trend-chart-container">
+                  <div id="aiTrendChart" class="chart-container"></div>
+                </div>
+              </el-col>
+              <el-col :xs="24" :lg="8">
+                <div class="trend-insights">
+                  <div v-for="trend in aiAnalysisResults.trendAnalysis" :key="trend.id" class="trend-item">
+                    <div class="trend-indicator" :class="trend.direction">
+                      <i :class="trend.direction === 'up' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                    </div>
+                    <div class="trend-info">
+                      <div class="trend-title">{{ trend.title }}</div>
+                      <div class="trend-description">{{ trend.description }}</div>
+                      <div class="trend-value" :class="trend.direction">
+                        {{ trend.change }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+
+          <!-- 综合结论 -->
+          <div class="summary-section">
+            <h4><i class="fa fa-comments"></i> 综合结论</h4>
+            <el-alert
+              v-for="conclusion in aiAnalysisResults.conclusions"
+              :key="conclusion.id"
+              :type="conclusion.type"
+              :title="conclusion.title"
+              :description="conclusion.description"
+              show-icon
+              class="conclusion-alert"
+            />
+          </div>
+        </div>
+      </el-card>
     </div>
 
     <div v-if="currentView === 'single'" class="single-station-view">
@@ -152,11 +359,11 @@
               <span>能耗趋势图</span>
               <div class="chart-actions">
                 <el-radio-group v-model="trendTimeGranularity" size="small" @change="handleTrendGranularityChange">
-                  <el-radio-button label="hour">小时</el-radio-button>
-                  <el-radio-button label="day">日</el-radio-button>
-                  <el-radio-button label="week">周</el-radio-button>
-                  <el-radio-button label="month">月</el-radio-button>
-                  <el-radio-button label="year">年</el-radio-button>
+                  <el-radio-button value="hour">小时</el-radio-button>
+                  <el-radio-button value="day">日</el-radio-button>
+                  <el-radio-button value="week">周</el-radio-button>
+                  <el-radio-button value="month">月</el-radio-button>
+                  <el-radio-button value="year">年</el-radio-button>
                 </el-radio-group>
               </div>
             </div>
@@ -207,7 +414,7 @@
               <template #header>
                 <div class="card-header">
                   <span>重点区域能耗排名</span>
-                  <el-button size="small" type="primary" text @click="viewAreaRankingDetail">
+                  <el-button size="small" type="primary" link @click="viewAreaRankingDetail">
                     查看详情
                   </el-button>
                 </div>
@@ -325,7 +532,7 @@
               <div class="ai-analysis-reports">
                 <div class="ai-reports-header">
                   <h5><i class="fa fa-file-text"></i> AI分析报告列表</h5>
-                  <el-button size="small" type="primary" text @click="viewAllForecastReports">
+                  <el-button size="small" type="primary" link @click="viewAllForecastReports">
                     查看全部
                   </el-button>
                 </div>
@@ -377,7 +584,7 @@
                   </el-table-column>
                   <el-table-column label="操作" min-width="80" fixed="right">
                     <template #default="scope">
-                      <el-button type="primary" size="small" text @click="viewForecastReportDetail(scope.row)">
+                      <el-button type="primary" size="small" link @click="viewForecastReportDetail(scope.row)">
                         查看详情
                       </el-button>
                     </template>
@@ -424,7 +631,7 @@
               <div class="ai-analysis-reports">
                 <div class="ai-reports-header">
                   <h5><i class="fa fa-file-text"></i> AI关联性分析报告列表</h5>
-                  <el-button size="small" type="primary" text @click="viewAllCorrelationReports">
+                  <el-button size="small" type="primary" link @click="viewAllCorrelationReports">
                     查看全部
                   </el-button>
                 </div>
@@ -471,7 +678,7 @@
                   </el-table-column>
                   <el-table-column label="操作" min-width="100" fixed="right">
                     <template #default="scope">
-                      <el-button type="primary" size="small" text @click="viewCorrelationReportDetail(scope.row)">
+                      <el-button type="primary" size="small" link @click="viewCorrelationReportDetail(scope.row)">
                         查看详情
                       </el-button>
                     </template>
@@ -548,7 +755,7 @@
               <div class="ai-analysis-reports">
                 <div class="ai-reports-header">
                   <h5><i class="fa fa-file-text"></i> AI策略推荐报告列表</h5>
-                  <el-button size="small" type="primary" text @click="viewAllRecommendationReports">
+                  <el-button size="small" type="primary" link @click="viewAllRecommendationReports">
                     查看全部
                   </el-button>
                 </div>
@@ -601,7 +808,7 @@
                   </el-table-column>
                   <el-table-column label="操作" min-width="100" fixed="right">
                     <template #default="scope">
-                      <el-button type="primary" size="small" text @click="viewRecommendationReportDetail(scope.row)">
+                      <el-button type="primary" size="small" link @click="viewRecommendationReportDetail(scope.row)">
                         查看详情
                       </el-button>
                     </template>
@@ -678,7 +885,7 @@
               <div class="ai-analysis-reports">
                 <div class="ai-reports-header">
                   <h5><i class="fa fa-file-text"></i> AI影响分析报告列表</h5>
-                  <el-button size="small" type="primary" text @click="viewAllImpactReports">
+                  <el-button size="small" type="primary" link @click="viewAllImpactReports">
                     查看全部
                   </el-button>
                 </div>
@@ -731,7 +938,7 @@
                   </el-table-column>
                   <el-table-column label="操作" min-width="100" fixed="right">
                     <template #default="scope">
-                      <el-button type="primary" size="small" text @click="viewImpactReportDetail(scope.row)">
+                      <el-button type="primary" size="small" link @click="viewImpactReportDetail(scope.row)">
                         查看详情
                       </el-button>
                     </template>
@@ -761,7 +968,7 @@
                 <div class="card-header">
                   <span>能耗预警记录</span>
                   <el-badge :value="pendingAlertCount" :max="99" class="alert-badge">
-                    <el-button size="small" type="primary" text @click="viewAllAlerts">
+                    <el-button size="small" type="primary" link @click="viewAllAlerts">
                       查看全部
                     </el-button>
                   </el-badge>
@@ -792,7 +999,7 @@
                   </el-table-column>
                   <el-table-column label="操作" width="80" fixed="right">
                     <template #default="scope">
-                      <el-button type="primary" size="small" text @click="handleAlert(scope.row)">
+                      <el-button type="primary" size="small" link @click="handleAlert(scope.row)">
                         <i class="fa fa-eye"></i>
                       </el-button>
                     </template>
@@ -893,7 +1100,7 @@
             </el-table-column>
             <el-table-column label="操作" width="100">
               <template #default="scope">
-                <el-button type="primary" size="small" text @click="viewStationDetail(scope.row)">
+                <el-button type="primary" size="small" link @click="viewStationDetail(scope.row)">
                   查看详情
                 </el-button>
               </template>
@@ -1092,11 +1299,16 @@ export default {
     }
 
     const stations = ref([
-      { id: 'station1', name: '北京南站', type: 'large' },
-      { id: 'station2', name: '上海虹桥站', type: 'large' },
-      { id: 'station3', name: '广州南站', type: 'large' },
-      { id: 'station4', name: '杭州东站', type: 'medium' },
-      { id: 'station5', name: '南京南站', type: 'medium' }
+      { id: 'station1', name: '北京南站', type: 'large', capacity: 50000, location: '北京', energyLevel: 1 },
+      { id: 'station2', name: '上海虹桥站', type: 'large', capacity: 45000, location: '上海', energyLevel: 1 },
+      { id: 'station3', name: '广州南站', type: 'large', capacity: 42000, location: '广州', energyLevel: 2 },
+      { id: 'station4', name: '深圳北站', type: 'large', capacity: 38000, location: '深圳', energyLevel: 2 },
+      { id: 'station5', name: '南京南站', type: 'medium', capacity: 28000, location: '南京', energyLevel: 2 },
+      { id: 'station6', name: '杭州东站', type: 'medium', capacity: 25000, location: '杭州', energyLevel: 1 },
+      { id: 'station7', name: '成都东站', type: 'large', capacity: 40000, location: '成都', energyLevel: 3 },
+      { id: 'station8', name: '武汉站', type: 'large', capacity: 35000, location: '武汉', energyLevel: 2 },
+      { id: 'station9', name: '西安北站', type: 'large', capacity: 32000, location: '西安', energyLevel: 3 },
+      { id: 'station10', name: '重庆北站', type: 'large', capacity: 30000, location: '重庆', energyLevel: 3 }
     ])
 
     const currentScenario = ref({
@@ -1580,6 +1792,11 @@ export default {
       return names[type] || type
     }
 
+    const getStationTypeTag = (type) => {
+      const tags = { large: 'primary', medium: 'success', small: 'warning' }
+      return tags[type] || 'info'
+    }
+
     const formatTime = (time) => {
       if (!time) return '-'
       const date = new Date(time)
@@ -1627,6 +1844,438 @@ export default {
       showThresholdDialog.value = false
     }
 
+    // AI分析相关函数
+    const generateAiAnalysis = () => {
+      console.log('生成AI分析报告...', aiAnalysisFilter)
+      
+      if (!aiAnalysisFilter.timeRange || aiAnalysisFilter.timeRange.length === 0) {
+        ElMessage.warning('请选择分析时间范围')
+        return
+      }
+      
+      if (!aiAnalysisFilter.selectedStations || aiAnalysisFilter.selectedStations.length === 0) {
+        ElMessage.warning('请选择至少一个站点')
+        return
+      }
+
+      if (!aiAnalysisFilter.analysisType) {
+        ElMessage.warning('请选择分析类型')
+        return
+      }
+
+      // 显示加载状态
+      const loadingMessage = ElMessage({
+        message: '正在生成AI分析报告...',
+        type: 'loading',
+        duration: 2000
+      })
+      
+      // 模拟生成过程并填充数据
+      setTimeout(() => {
+        // 获取选中的站点详细信息
+        const selectedStationsData = stations.value.filter(station => 
+          aiAnalysisFilter.selectedStations.includes(station.id)
+        )
+        
+        // 根据分析类型生成不同的报告内容
+        const analysisReport = generateAnalysisByType(aiAnalysisFilter.analysisType, selectedStationsData)
+        
+        // 填充汇总数据
+        aiAnalysisResults.show = true
+        aiAnalysisResults.dataStats = {
+          stationCount: aiAnalysisFilter.selectedStations.length,
+          daysCount: calculateDaysInRange(aiAnalysisFilter.timeRange),
+          deviceCount: selectedStationsData.reduce((sum, station) => sum + Math.floor(station.capacity / 50), 0),
+          totalEnergy: analysisReport.totalEnergy
+        }
+        
+        aiAnalysisResults.keyFindings = analysisReport.keyFindings
+        
+        aiAnalysisResults.trendAnalysis = analysisReport.trendAnalysis
+        
+        aiAnalysisResults.conclusions = analysisReport.conclusions
+        
+        ElMessage.success('AI分析报告生成完成')
+      }, 2000)
+    }
+
+    // 根据分析类型生成报告
+    const generateAnalysisByType = (analysisType, selectedStations) => {
+      const baseEnergy = selectedStations.reduce((sum, station) => sum + station.capacity * 0.8, 0)
+      const avgEnergyLevel = selectedStations.reduce((sum, station) => sum + station.energyLevel, 0) / selectedStations.length
+      
+      switch (analysisType) {
+        case 'comprehensive':
+          return generateComprehensiveAnalysis(selectedStations, baseEnergy, avgEnergyLevel)
+        case 'trend':
+          return generateTrendAnalysis(selectedStations, baseEnergy, avgEnergyLevel)
+        case 'efficiency':
+          return generateEfficiencyAnalysis(selectedStations, baseEnergy, avgEnergyLevel)
+        case 'saving':
+          return generateSavingAnalysis(selectedStations, baseEnergy, avgEnergyLevel)
+        default:
+          return generateComprehensiveAnalysis(selectedStations, baseEnergy, avgEnergyLevel)
+      }
+    }
+
+    // 综合分析报告
+    const generateComprehensiveAnalysis = (stations, baseEnergy, avgEnergyLevel) => {
+      const efficiency = Math.max(0.75, Math.min(0.95, 1 - (avgEnergyLevel - 1) * 0.1))
+      const savingRate = (1 - efficiency) * 100
+      
+      return {
+        totalEnergy: Math.round(baseEnergy * efficiency),
+        keyFindings: [
+          { 
+            id: 'KF001', 
+            title: '综合能效表现', 
+            description: `${stations.length}个站点平均能效等级为${avgEnergyLevel.toFixed(1)}级，表现${avgEnergyLevel <= 2 ? '优秀' : '良好'}`, 
+            impact: avgEnergyLevel <= 2 ? 'positive' : 'neutral',
+            type: avgEnergyLevel <= 2 ? 'success' : 'warning',
+            icon: 'fa fa-star',
+            metricTrend: avgEnergyLevel <= 2 ? 'down' : 'up',
+            metricValue: `${savingRate.toFixed(1)}%`
+          },
+          { 
+            id: 'KF002', 
+            title: '站点差异分析', 
+            description: '大型站与中型站在能耗控制方面存在显著差异', 
+            impact: 'neutral',
+            type: 'info',
+            icon: 'fa fa-balance-scale',
+            metricTrend: 'up',
+            metricValue: '15.3%'
+          },
+          { 
+            id: 'KF003', 
+            title: '优化潜力评估', 
+            description: '基于历史数据分析，仍有进一步优化空间', 
+            impact: 'positive',
+            type: 'info',
+            icon: 'fa fa-lightbulb-o',
+            metricTrend: 'down',
+            metricValue: '8.7%'
+          }
+        ],
+        trendAnalysis: [
+          { 
+            id: 'TA001', 
+            title: '整体能耗趋势', 
+            description: '分析期间整体能耗呈下降趋势', 
+            change: -2.3,
+            direction: 'down'
+          },
+          { 
+            id: 'TA002', 
+            title: '季节性波动', 
+            description: '受季节因素影响，能耗呈现规律性波动', 
+            change: 1.2,
+            direction: 'up'
+          },
+          { 
+            id: 'TA003', 
+            title: '效率提升趋势', 
+            description: '设备运行效率持续改善', 
+            change: -1.8,
+            direction: 'down'
+          }
+        ],
+        conclusions: [
+          { 
+            id: 'CL001', 
+            title: '综合表现良好', 
+            description: '所选站点在分析期间整体表现良好，能耗控制效果显著', 
+            type: 'success'
+          },
+          { 
+            id: 'CL002', 
+            title: '存在优化空间', 
+            description: '建议针对能效等级较低的站点制定专项优化策略', 
+            type: 'warning'
+          }
+        ]
+      }
+    }
+
+    // 能耗趋势分析报告
+    const generateTrendAnalysis = (stations, baseEnergy, avgEnergyLevel) => {
+      const trendData = stations.map(station => ({
+        ...station,
+        trend: Math.random() > 0.5 ? 'up' : 'down',
+        change: Math.random() * 10 - 5
+      }))
+      
+      return {
+        totalEnergy: Math.round(baseEnergy * 0.85),
+        keyFindings: [
+          { 
+            id: 'KF001', 
+            title: '能耗趋势分析', 
+            description: '各站点能耗变化趋势分析完成', 
+            impact: 'neutral',
+            type: 'info',
+            icon: 'fa fa-line-chart',
+            metricTrend: 'down',
+            metricValue: '2.1%'
+          },
+          { 
+            id: 'KF002', 
+            title: '异常波动识别', 
+            description: '识别出部分时段的异常能耗波动', 
+            impact: 'warning',
+            type: 'warning',
+            icon: 'fa fa-exclamation-triangle',
+            metricTrend: 'up',
+            metricValue: '3.2%'
+          }
+        ],
+        trendAnalysis: trendData.map((station, index) => ({
+          id: `TA00${index + 1}`,
+          title: `${station.name}趋势`,
+          description: `${station.name}在分析期间能耗${station.trend === 'up' ? '上升' : '下降'}${Math.abs(station.change).toFixed(1)}%`,
+          change: station.change,
+          direction: station.trend
+        })),
+        conclusions: [
+          { 
+            id: 'CL001', 
+            title: '趋势分析完成', 
+            description: '已完成所选站点的详细能耗趋势分析', 
+            type: 'info'
+          }
+        ]
+      }
+    }
+
+    // 设备效率分析报告
+    const generateEfficiencyAnalysis = (stations, baseEnergy, avgEnergyLevel) => {
+      return {
+        totalEnergy: Math.round(baseEnergy * 0.9),
+        keyFindings: [
+          { 
+            id: 'KF001', 
+            title: '设备效率评估', 
+            description: '主要设备运行效率较基准提升', 
+            impact: 'positive',
+            type: 'success',
+            icon: 'fa fa-cogs',
+            metricTrend: 'up',
+            metricValue: '5.2%'
+          },
+          { 
+            id: 'KF002', 
+            title: '维护效果显著', 
+            description: '定期维护对设备效率提升效果明显', 
+            impact: 'positive',
+            type: 'success',
+            icon: 'fa fa-wrench',
+            metricTrend: 'up',
+            metricValue: '3.8%'
+          }
+        ],
+        trendAnalysis: [
+          { 
+            id: 'TA001', 
+            title: '设备效率趋势', 
+            description: '设备整体效率保持稳定提升', 
+            change: -1.5,
+            direction: 'down'
+          },
+          { 
+            id: 'TA002', 
+            title: '故障率变化', 
+            description: '设备故障率呈下降趋势', 
+            change: -2.1,
+            direction: 'down'
+          }
+        ],
+        conclusions: [
+          { 
+            id: 'CL001', 
+            title: '效率管理有效', 
+            description: '设备效率管理措施效果良好，建议继续执行', 
+            type: 'success'
+          }
+        ]
+      }
+    }
+
+    // 节能效果分析报告
+    const generateSavingAnalysis = (stations, baseEnergy, avgEnergyLevel) => {
+      return {
+        totalEnergy: Math.round(baseEnergy * 0.78),
+        keyFindings: [
+          { 
+            id: 'KF001', 
+            title: '节能效果突出', 
+            description: '节能措施实施以来效果显著', 
+            impact: 'positive',
+            type: 'success',
+            icon: 'fa fa-leaf',
+            metricTrend: 'down',
+            metricValue: '12.3%'
+          },
+          { 
+            id: 'KF002', 
+            title: '成本节约明显', 
+            description: '能耗降低带来显著的经济效益', 
+            impact: 'positive',
+            type: 'success',
+            icon: 'fa fa-money',
+            metricTrend: 'down',
+            metricValue: '15.6%'
+          }
+        ],
+        trendAnalysis: [
+          { 
+            id: 'TA001', 
+            title: '节能率趋势', 
+            description: '节能效果持续改善', 
+            change: -3.2,
+            direction: 'down'
+          },
+          { 
+            id: 'TA002', 
+            title: '投资回报率', 
+            description: '节能投资回报率表现优秀', 
+            change: -2.8,
+            direction: 'down'
+          }
+        ],
+        conclusions: [
+          { 
+            id: 'CL001', 
+            title: '节能成效显著', 
+            description: '节能措施取得显著成效，建议推广应用', 
+            type: 'success'
+          }
+        ]
+      }
+    }
+
+    // 计算时间范围内的天数
+    const calculateDaysInRange = (timeRange) => {
+      if (!timeRange || timeRange.length !== 2) return 30
+      const start = new Date(timeRange[0] + '-01')
+      const end = new Date(timeRange[1] + '-01')
+      const diffTime = Math.abs(end - start)
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      return Math.max(diffDays, 30)
+    }
+
+    // 导出AI分析报告
+    const exportAiAnalysis = () => {
+      if (!aiAnalysisResults.show) {
+        ElMessage.warning('请先生成AI分析报告')
+        return
+      }
+      
+      ElMessage.success('正在导出AI分析报告...')
+      
+      // 生成报告数据
+      const reportData = {
+        reportTitle: 'AI分析汇总报告',
+        generatedTime: new Date().toLocaleString('zh-CN'),
+        filterSettings: {
+          timeRange: aiAnalysisFilter.timeRange,
+          selectedStations: aiAnalysisFilter.selectedStations.map(id => {
+            const station = stations.value.find(s => s.id === id)
+            return station ? station.name : id
+          }),
+          analysisType: aiAnalysisFilter.analysisType
+        },
+        dataStats: aiAnalysisResults.dataStats,
+        keyFindings: aiAnalysisResults.keyFindings,
+        trendAnalysis: aiAnalysisResults.trendAnalysis,
+        conclusions: aiAnalysisResults.conclusions
+      }
+      
+      // 模拟导出Excel
+      setTimeout(() => {
+        const blob = new Blob([JSON.stringify(reportData, null, 2)], { 
+          type: 'application/json' 
+        })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `AI分析报告_${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+        
+        ElMessage.success('报告导出完成')
+      }, 1000)
+    }
+
+    // 查看详细分析
+    const viewFullAnalysis = () => {
+      if (!aiAnalysisResults.show) {
+        ElMessage.warning('请先生成AI分析报告')
+        return
+      }
+      
+      ElMessage.info('正在打开详细分析页面...')
+      
+      // 创建详细分析弹窗
+      const detailedAnalysis = `
+        <div style="padding: 20px; max-height: 600px; overflow-y: auto;">
+          <h3>详细分析报告</h3>
+          <hr>
+          <h4>数据统计</h4>
+          <ul>
+            <li>涉及站点: ${aiAnalysisResults.dataStats.stationCount}个</li>
+            <li>分析天数: ${aiAnalysisResults.dataStats.daysCount}天</li>
+            <li>设备数量: ${aiAnalysisResults.dataStats.deviceCount}台</li>
+            <li>总能耗: ${aiAnalysisResults.dataStats.totalEnergy} kWh</li>
+          </ul>
+          
+          <h4>关键发现</h4>
+          ${aiAnalysisResults.keyFindings.map(finding => `
+            <div style="margin: 10px 0; padding: 10px; border-left: 4px solid #409EFF;">
+              <h5>${finding.title}</h5>
+              <p>${finding.description}</p>
+              <p><strong>关键指标:</strong> ${finding.metricValue}</p>
+            </div>
+          `).join('')}
+          
+          <h4>趋势分析</h4>
+          ${aiAnalysisResults.trendAnalysis.map(trend => `
+            <div style="margin: 10px 0; padding: 10px; background: #f5f7fa;">
+              <h5>${trend.title}</h5>
+              <p>${trend.description}</p>
+              <p><strong>变化:</strong> ${trend.change}%</p>
+            </div>
+          `).join('')}
+          
+          <h4>综合结论</h4>
+          ${aiAnalysisResults.conclusions.map(conclusion => `
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #e4e7ed;">
+              <h5>${conclusion.title}</h5>
+              <p>${conclusion.description}</p>
+            </div>
+          `).join('')}
+        </div>
+      `
+      
+      ElMessageBox.alert(detailedAnalysis, '详细分析报告', {
+        dangerouslyUseHTMLString: true,
+        width: '800px'
+      })
+    }
+
+    const resetAiFilters = () => {
+      aiAnalysisFilter.timeRange = ['2025-10', '2025-11']
+      aiAnalysisFilter.selectedStations = []
+      aiAnalysisFilter.analysisType = ''
+      aiAnalysisResults.show = false
+      ElMessage.success('筛选条件已重置')
+    }
+
+
+
+
+
     const getThresholdLabel = (key) => {
       const labels = { totalEnergy: '总能耗', totalCost: '总费用', efficiencyIndex: '能效指标', alertCount: '预警数量' }
       return labels[key] || key
@@ -1636,6 +2285,32 @@ export default {
       const units = { totalEnergy: 'kWh', totalCost: '¥', efficiencyIndex: 'kgce/人', alertCount: '个' }
       return units[key] || ''
     }
+
+    // AI分析筛选器数据
+    const aiAnalysisFilter = reactive({
+      timeRange: ['2025-10', '2025-11'],
+      selectedStations: [],
+      analysisType: 'comprehensive'
+    })
+
+    const allStations = computed(() => stations.value.map(station => ({
+      ...station,
+      typeName: getStationTypeName(station.type)
+    })))
+
+    // AI分析结果汇总数据
+    const aiAnalysisResults = reactive({
+      show: false,
+      dataStats: {
+        stationCount: 0,
+        daysCount: 0,
+        deviceCount: 0,
+        totalEnergy: 0
+      },
+      keyFindings: [],
+      trendAnalysis: [],
+      conclusions: []
+    })
 
     // AI分析相关数据
     const aiAnalysisType = ref('forecast')
@@ -3171,7 +3846,16 @@ export default {
       viewForecastReportDetail,
       viewCorrelationReportDetail,
       viewRecommendationReportDetail,
-      viewImpactReportDetail
+      viewImpactReportDetail,
+      // AI分析筛选相关
+      aiAnalysisFilter,
+      allStations,
+      generateAiAnalysis,
+      resetAiFilters,
+      exportAiAnalysis,
+      viewFullAnalysis,
+      getStationTypeTag,
+      aiAnalysisResults
     }
   }
 }

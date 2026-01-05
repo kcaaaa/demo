@@ -283,7 +283,7 @@ const SingleStation = () => {
       <PageHeader
         title="单站能耗分析"
         subtitle="多维度数据展示 · 趋势预测 · 异常检测"
-        items={[{ title: '首页', href: '/' }, { title: '单站能耗分析' }]}
+        items={[{ title: '首页', path: '/' }, { title: '单站能耗分析' }]}
       />
 
       <Card bordered={false} style={{ marginBottom: 16 }}>

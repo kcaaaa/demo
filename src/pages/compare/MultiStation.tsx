@@ -145,7 +145,7 @@ const MultiStation = () => {
       <PageHeader
         title="多站能耗对比"
         subtitle="站点选择 · 对比分析 · 能效评估"
-        items={[{ title: '首页', href: '/' }, { title: '多站能耗对比' }]}
+        items={[{ title: '首页', path: '/' }, { title: '多站能耗对比' }]}
       />
 
       <Card bordered={false} style={{ marginBottom: 16 }}>

@@ -218,7 +218,7 @@ const Device = () => {
       <PageHeader
         title="设备管理"
         subtitle="系统管理 · 能耗分析 · 设备分类 · 维护记录 · 能耗预测 · 异常预警"
-        items={[{ title: '首页', href: '/' }, { title: '设备管理' }]}
+        items={[{ title: '首页', path: '/' }, { title: '设备管理' }]}
       />
 
       <Card bordered={false} style={{ marginBottom: 16 }}>

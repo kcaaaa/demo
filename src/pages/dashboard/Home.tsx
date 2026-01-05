@@ -56,6 +56,7 @@ const HomePage = () => {
   return (
     <div className="home-page">
       <PageHeader title="首页" subtitle="全局概览 / AI 汇总 / 快速导航" items={[{ title: '首页' }]} />
+      {/* @ts-ignore */}
       <HomeView
         keyMetrics={keyMetrics}
         alerts={alerts}

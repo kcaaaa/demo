@@ -178,7 +178,7 @@ const EnergyRatio = () => {
       <PageHeader
         title="能耗占比分析"
         subtitle="区域/设备/时段/能耗类型占比与趋势"
-        items={[{ title: '首页', href: '/' }, { title: '能耗占比分析' }]}
+        items={[{ title: '首页', path: '/' }, { title: '能耗占比分析' }]}
       />
 
       <Card bordered={false} style={{ marginBottom: 16 }}>

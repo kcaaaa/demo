@@ -281,7 +281,7 @@ const AlertCenter = () => {
       <PageHeader
         title="能耗分析预警"
         subtitle="实时监控 · 智能异常检测 · 分级预警 · 处理流程"
-        items={[{ title: '首页', href: '/' }, { title: '能耗分析预警' }]}
+        items={[{ title: '首页', path: '/' }, { title: '能耗分析预警' }]}
       />
 
       <Row gutter={[16, 16]}>

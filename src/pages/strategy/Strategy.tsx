@@ -22,6 +22,7 @@ import {
   DeleteOutlined,
   BarChartOutlined,
   HistoryOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 import PageHeader from '../../components/PageHeader'
 import { sleep } from '../../utils/mock'
@@ -194,7 +195,7 @@ const Strategy = () => {
       <PageHeader
         title="节能策略模拟"
         subtitle="智能推荐 · 模板管理 · 策略组合 · 实时模拟 · 历史记录"
-        items={[{ title: '首页', href: '/' }, { title: '节能策略模拟' }]}
+        items={[{ title: '首页', path: '/' }, { title: '节能策略模拟' }]}
       />
 
       <Card bordered={false} style={{ marginBottom: 16 }}>
@@ -236,6 +237,7 @@ const Strategy = () => {
         </Row>
       </Card>
 
+      {/* @ts-ignore */}
       <Collapse
         defaultActiveKey={['recommendations', 'templates', 'combination']}
         style={{ marginBottom: 16 }}

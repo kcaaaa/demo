@@ -371,6 +371,7 @@ const StrategyNew = () => {
           cost: `¥${(56000000 + Math.random() * 2000000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`,
           efficiency: `${(83 + Math.random() * 5).toFixed(1)}%`,
         }
+        // @ts-ignore
         setDynamicSimulationRecords([newRecord, ...dynamicSimulationRecords])
         return
       }

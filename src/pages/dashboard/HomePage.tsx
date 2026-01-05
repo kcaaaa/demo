@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react'
-import { Card, Row, Col, Progress, Badge, Table, Button, Tag, Space, message, DatePicker, Select, Modal, Alert, Statistic, Divider } from 'antd'
+import { Card, Row, Col, Progress, Badge, Table, Button, Tag, Space, message, DatePicker, Select, Modal, Alert, Statistic, Divider, Tooltip } from 'antd'
 import {
   ThunderboltOutlined,
   DashboardOutlined,
@@ -890,16 +890,16 @@ const HomePage = () => {
               <Col xs={12} sm={6}>
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
-                    border: '1px solid #BEDBFF',
+                    background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+                    border: '1px solid #DDD6FF',
                     borderRadius: '12px',
                     padding: '17px',
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 12, color: '#155DFC', marginBottom: 4 }}>分析报告数</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: '#1447E6', lineHeight: '32px' }}>28</div>
-                  <div style={{ fontSize: 12, color: '#62748E' }}>份</div>
+                  <div style={{ fontSize: 12, color: '#7F22FE', marginBottom: 4 }}>关联强度</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#7008E7', lineHeight: '32px' }}>0.82</div>
+                  <div style={{ fontSize: 12, color: '#62748E' }}>平均值</div>
                 </div>
               </Col>
               <Col xs={12} sm={6}>
@@ -935,16 +935,16 @@ const HomePage = () => {
               <Col xs={12} sm={6}>
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
-                    border: '1px solid #DDD6FF',
+                    background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+                    border: '1px solid #BEDBFF',
                     borderRadius: '12px',
                     padding: '17px',
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: 12, color: '#7F22FE', marginBottom: 4 }}>关联强度</div>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: '#7008E7', lineHeight: '32px' }}>0.82</div>
-                  <div style={{ fontSize: 12, color: '#62748E' }}>平均值</div>
+                  <div style={{ fontSize: 12, color: '#155DFC', marginBottom: 4 }}>分析报告数</div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#1447E6', lineHeight: '32px' }}>28</div>
+                  <div style={{ fontSize: 12, color: '#62748E' }}>份</div>
                 </div>
               </Col>
             </Row>
@@ -1152,37 +1152,153 @@ const HomePage = () => {
           </Row>
 
           {/* 操作按钮 */}
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <Button
-              onClick={() => {
-                setAiReportDateRange([moment('2025-10'), moment('2025-11')])
-                setAiReportStations(['北京站', '上海站', '广州站'])
-                setAnalysisType('comprehensive')
-                setReportGenerated(false)
-                message.info('筛选条件已重置')
-              }}
-            >
-              重置
-            </Button>
-            <Button
-              type="primary"
-              icon={<SyncOutlined spin={reportGenerating} />}
-              loading={reportGenerating}
-              onClick={handleGenerateReport}
+          <div style={{ marginTop: 16 }}>
+            {/* 功能说明 */}
+            <div
               style={{
-                background: 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)',
-                border: 'none',
+                marginBottom: 12,
+                padding: '12px 16px',
+                background: '#F0F9FF',
                 borderRadius: '8px',
+                border: '1px solid #BAE6FD',
               }}
             >
-              生成分析报告
-            </Button>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <InfoCircleOutlined style={{ fontSize: 16, color: '#0EA5E9', marginTop: 2, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0C4A6E', marginBottom: 4 }}>
+                    功能说明
+                  </div>
+                  <div style={{ fontSize: 12, color: '#075985', lineHeight: '1.6' }}>
+                    AI分析报告将基于您选择的时间范围、站点和分析类型，运用深度学习算法进行多维度数据分析。
+                    报告包含：数据来源统计、关键发现、趋势分析图表、综合结论等内容，帮助您全面了解能耗状况并制定优化策略。
+                    生成时间约2-3秒，报告生成后可导出为PDF格式。
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <Button
+                onClick={() => {
+                  setAiReportDateRange([moment('2025-10'), moment('2025-11')])
+                  setAiReportStations(['北京站', '上海站', '广州站'])
+                  setAnalysisType('comprehensive')
+                  setReportGenerated(false)
+                  message.info('筛选条件已重置')
+                }}
+              >
+                重置
+              </Button>
+              <Button
+                type="primary"
+                icon={<SyncOutlined spin={reportGenerating} />}
+                loading={reportGenerating}
+                onClick={handleGenerateReport}
+                style={{
+                  background: 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                }}
+              >
+                生成分析报告
+              </Button>
+            </div>
           </div>
         </Card>
 
         {/* 报告结果展示区域 */}
         {reportGenerated && (
           <div style={{ animation: 'fadeIn 0.5s ease-in' }}>
+            {/* 报告汇总说明 */}
+            <Card
+              bordered={false}
+              style={{
+                background: 'linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 50%, #F0F9FF 100%)',
+                borderRadius: '12px',
+                marginBottom: 20,
+                boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+                border: '1px solid #86EFAC',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0px 4px 12px rgba(16, 185, 129, 0.3)',
+                  }}
+                >
+                  <CheckCircleOutlined style={{ fontSize: 24, color: '#fff' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#065F46', marginBottom: 8 }}>
+                    📋 报告生成完成
+                  </div>
+                  <div style={{ fontSize: 13, color: '#047857', lineHeight: '1.6', marginBottom: 12 }}>
+                    本次AI分析报告已成功生成，基于您选择的
+                    <Tag color="blue" style={{ margin: '0 4px' }}>
+                      {aiReportDateRange[0].format('YYYY年MM月')} 至 {aiReportDateRange[1].format('YYYY年MM月')}
+                    </Tag>
+                    时间范围，对
+                    <Tag color="green" style={{ margin: '0 4px' }}>
+                      {aiReportStations.length}个站点
+                    </Tag>
+                    进行了
+                    <Tag color="purple" style={{ margin: '0 4px' }}>
+                      {analysisType === 'comprehensive' ? '综合分析' : analysisType === 'trend' ? '能耗趋势分析' : analysisType === 'efficiency' ? '设备效率分析' : '节能效果分析'}
+                    </Tag>
+                    。
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                      padding: '12px',
+                      background: '#fff',
+                      borderRadius: '8px',
+                      border: '1px solid #D1FAE5',
+                    }}
+                  >
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>分析站点</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#065F46' }}>
+                        {aiReportStations.slice(0, 3).join('、')}
+                        {aiReportStations.length > 3 && `等${aiReportStations.length}个站点`}
+                      </div>
+                    </div>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>数据覆盖</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#065F46' }}>
+                        {aiReportData.dataStats.daysCount}天 · {aiReportData.dataStats.deviceCount}台设备
+                      </div>
+                    </div>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>总能耗</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#065F46' }}>
+                        {aiReportData.dataStats.totalEnergy.toLocaleString()} kWh
+                      </div>
+                    </div>
+                    <div style={{ flex: '1 1 200px' }}>
+                      <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>生成时间</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#065F46' }}>
+                        {new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, fontSize: 12, color: '#047857', lineHeight: '1.6' }}>
+                    💡 <strong>报告内容包含：</strong>数据来源统计、关键发现（{aiReportData.keyFindings.length}项）、趋势分析图表、综合结论（{aiReportData.conclusions.length}项）等模块，您可以通过下方按钮导出PDF或查看详细分析。
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* 数据统计汇总 */}
             <Card
               bordered={false}

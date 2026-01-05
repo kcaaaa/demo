@@ -100,18 +100,23 @@ const generateStationData = (station: string, period: string) => {
     ]
   }
 
-  // 能效趋势（不同站点效率不同）
+  // 能效趋势（不同站点效率不同）- 今年与去年同月对比
   const efficiencyBase = factor.efficiency
+  const year = new Date().getFullYear()
   const efficiencyData = {
-    months: ['一月', '二月', '三月', '四月', '五月', '六月', '七月'],
-    lastMonth: [
-      efficiencyBase - 4, efficiencyBase - 7, efficiencyBase - 5,
-      efficiencyBase - 1, efficiencyBase - 3, efficiencyBase + 1, efficiencyBase
+    months: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+    lastYear: [
+      efficiencyBase - 4, efficiencyBase - 7, efficiencyBase - 5, efficiencyBase - 1,
+      efficiencyBase - 3, efficiencyBase + 1, efficiencyBase, efficiencyBase + 2,
+      efficiencyBase - 1, efficiencyBase + 1, efficiencyBase + 3, efficiencyBase + 2
     ],
-    thisMonth: [
-      efficiencyBase - 1, efficiencyBase - 3, efficiencyBase,
-      efficiencyBase + 2, efficiencyBase + 1, efficiencyBase + 4, efficiencyBase + 3
+    thisYear: [
+      efficiencyBase - 1, efficiencyBase - 3, efficiencyBase, efficiencyBase + 2,
+      efficiencyBase + 1, efficiencyBase + 4, efficiencyBase + 3, efficiencyBase + 5,
+      efficiencyBase + 2, efficiencyBase + 4, efficiencyBase + 6, efficiencyBase + 5
     ],
+    currentYear: year,
+    lastYearNum: year - 1,
   }
 
   // 雷达图数据（不同站点特征不同）
@@ -445,10 +450,17 @@ const SingleStationNew = () => {
   const efficiencyOption = {
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow' },
+      axisPointer: { type: 'cross' },
+      formatter: (params: any) => {
+        let result = params[0].name + '<br/>'
+        params.forEach((item: any) => {
+          result += `${item.marker}${item.seriesName}: ${item.value}%<br/>`
+        })
+        return result
+      },
     },
     legend: {
-      data: ['上月', '本月'],
+      data: [`${efficiencyData.lastYearNum}年`, `${efficiencyData.currentYear}年`],
       top: 0,
     },
     grid: {
@@ -460,6 +472,10 @@ const SingleStationNew = () => {
     xAxis: {
       type: 'category',
       data: efficiencyData.months,
+      boundaryGap: false,
+      axisLabel: {
+        formatter: (value: string) => value,
+      },
     },
     yAxis: {
       type: 'value',
@@ -468,18 +484,57 @@ const SingleStationNew = () => {
     },
     series: [
       {
-        name: '上月',
-        type: 'bar',
-        data: efficiencyData.lastMonth,
+        name: `${efficiencyData.lastYearNum}年`,
+        type: 'line',
+        data: efficiencyData.lastYear,
+        smooth: true,
+        lineStyle: { 
+          width: 2, 
+          color: '#c9cdd4',
+          type: 'dashed',
+        },
         itemStyle: { color: '#c9cdd4' },
-        barWidth: 16,
+        symbol: 'circle',
+        symbolSize: 6,
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(201, 205, 212, 0.3)' },
+              { offset: 1, color: 'rgba(201, 205, 212, 0.05)' },
+            ],
+          },
+        },
       },
       {
-        name: '本月',
-        type: 'bar',
-        data: efficiencyData.thisMonth,
+        name: `${efficiencyData.currentYear}年`,
+        type: 'line',
+        data: efficiencyData.thisYear,
+        smooth: true,
+        lineStyle: { 
+          width: 3, 
+          color: '#1890ff',
+        },
         itemStyle: { color: '#1890ff' },
-        barWidth: 16,
+        symbol: 'circle',
+        symbolSize: 8,
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(24, 144, 255, 0.4)' },
+              { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
+            ],
+          },
+        },
       },
     ],
   }
@@ -736,7 +791,7 @@ const SingleStationNew = () => {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="能效趋势分析" bordered={false} extra={<span style={{ fontSize: 12, color: '#86909c' }}>本期与上期对比</span>}>
+          <Card title="能效趋势分析" bordered={false} extra={<span style={{ fontSize: 12, color: '#86909c' }}>今年与去年同月对比</span>}>
             <Chart option={efficiencyOption} height={300} />
           </Card>
         </Col>

@@ -1,0 +1,101 @@
+/**
+ * 能耗占比分析样式
+ */
+
+.energy-ratio-container {
+  padding: 0;
+}
+
+/* ===== 进度环指标卡片 ===== */
+.progress-metric-card {
+  border-radius: var(--border-radius-lg) !important;
+  box-shadow: var(--box-shadow-md) !important;
+  transition: all var(--transition-base) !important;
+  border: 1px solid var(--border-color-light) !important;
+}
+
+.progress-metric-card:hover {
+  box-shadow: var(--box-shadow-lg) !important;
+  transform: translateY(-2px) !important;
+}
+
+.progress-metric-card .ant-card-body {
+  padding: 20px !important;
+}
+
+.progress-metric-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-inner-text {
+  text-align: center;
+}
+
+.progress-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.progress-info {
+  text-align: center;
+  width: 100%;
+}
+
+.progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+/* ===== 能源类型进度条 ===== */
+.energy-types-progress-ratio {
+  padding: 16px 0;
+}
+
+.energy-type-item-ratio {
+  margin-bottom: 24px;
+}
+
+.energy-type-item-ratio:last-child {
+  margin-bottom: 0;
+}
+
+.energy-type-header-ratio {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.energy-type-name-ratio {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.energy-type-percentage-ratio {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+/* ===== 响应式优化 ===== */
+@media (max-width: 1280px) {
+  .progress-metric-inner {
+    gap: 8px;
+  }
+  
+  .progress-value {
+    font-size: 16px;
+  }
+  
+  .progress-title {
+    font-size: 13px;
+  }
+}
+

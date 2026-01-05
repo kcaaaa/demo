@@ -1,0 +1,577 @@
+/**
+ * 首页样式 - 完全按照Figma设计稿
+ */
+
+.homepage-container {
+  padding: 0;
+}
+
+/* ===== 顶部指标卡片 ===== */
+.top-metrics-row {
+  margin-bottom: 0;
+}
+
+.metric-card-top {
+  border-radius: var(--border-radius-lg) !important;
+  box-shadow: var(--box-shadow-md) !important;
+  transition: all var(--transition-base) !important;
+  border: 1px solid var(--border-color-light) !important;
+}
+
+.metric-card-top:hover {
+  box-shadow: var(--box-shadow-lg) !important;
+  transform: translateY(-2px) !important;
+}
+
+.metric-card-top .ant-card-body {
+  padding: 20px !important;
+}
+
+.metric-card-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.metric-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-color-light);
+  border-radius: var(--border-radius-lg);
+  flex-shrink: 0;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: var(--text-color-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.metric-value-main {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.metric-unit-main {
+  font-size: 14px;
+  color: var(--text-color-tertiary);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.metric-change {
+  margin-top: 4px;
+}
+
+/* ===== AI总结卡片 ===== */
+.ai-summary-card {
+  box-shadow: var(--box-shadow-xl) !important;
+}
+
+.ai-summary-header {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: var(--border-radius-md);
+  border-left: 3px solid var(--primary-color);
+}
+
+.ai-summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-summary-section {
+  padding: 12px;
+  background: #fafbfc;
+  border-radius: var(--border-radius-md);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.ai-summary-label {
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.ai-summary-text {
+  color: var(--text-color-secondary);
+}
+
+.ai-metric-mini {
+  text-align: center;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-base);
+}
+
+.ai-metric-mini:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--box-shadow-sm);
+}
+
+.ai-metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.ai-metric-desc {
+  font-size: 12px;
+  color: var(--text-color-tertiary);
+}
+
+/* ===== 实时动态卡片 ===== */
+.live-updates-card {
+  height: 100%;
+  box-shadow: var(--box-shadow-xl) !important;
+}
+
+.live-updates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.live-update-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--border-radius-lg);
+  border-left: 4px solid;
+  transition: all var(--transition-base);
+}
+
+.live-update-green {
+  background: #f6ffed;
+  border-left-color: #52c41a;
+}
+
+.live-update-orange {
+  background: #fffbe6;
+  border-left-color: #faad14;
+}
+
+.live-update-red {
+  background: #fff2f0;
+  border-left-color: #f5222d;
+}
+
+.live-update-item:hover {
+  box-shadow: var(--box-shadow-sm);
+  transform: translateX(4px);
+}
+
+.live-update-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.live-update-content {
+  flex: 1;
+}
+
+.live-update-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.live-update-desc {
+  font-size: 12px;
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.live-update-time {
+  font-size: 11px;
+  color: var(--text-color-tertiary);
+}
+
+/* ===== 关键指标进度环 ===== */
+.indicator-progress-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #fafbfc;
+  border-radius: var(--border-radius-lg);
+  transition: all var(--transition-base);
+}
+
+.indicator-progress-card:hover {
+  background: #f5f7fa;
+  box-shadow: var(--box-shadow-sm);
+}
+
+.indicator-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  text-align: center;
+}
+
+/* ===== AI汇总分析模块 - Figma设计 ===== */
+.ai-analysis-section {
+  margin-bottom: 16px;
+}
+
+.ai-analysis-card {
+  border-radius: 16px !important;
+}
+
+.ai-analysis-card .ant-card-body {
+  padding: 0 !important;
+}
+
+/* AI分析结果卡片样式 */
+.ai-analysis-result-card {
+  transition: all var(--transition-base);
+}
+
+.ai-analysis-result-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 分析卡片（能耗趋势/预测分析/策略推荐/多站点对比） */
+.analysis-card-item {
+  padding: 16px 16px 16px 20px;
+  border-radius: 12px;
+  transition: all var(--transition-base);
+}
+
+.analysis-card-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+/* 统计指标卡片 */
+.analysis-stat-mini {
+  text-align: center;
+  padding: 17px;
+  border-radius: 12px;
+  transition: all var(--transition-base);
+}
+
+.analysis-stat-mini:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== AI分析控件 ===== */
+.ai-analysis-controls {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafbfc;
+  border-radius: var(--border-radius-md);
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.control-item label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+/* ===== AI分析Modal ===== */
+.ai-analysis-modal .analysis-section {
+  margin-bottom: 32px;
+}
+
+.ai-analysis-modal .analysis-section:last-child {
+  margin-bottom: 0;
+}
+
+.ai-analysis-modal .analysis-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-color-light);
+}
+
+.analysis-stat-card {
+  background: #fafbfc;
+  padding: 20px;
+  border-radius: var(--border-radius-lg);
+  text-align: center;
+  border: 1px solid var(--border-color-light);
+  transition: all var(--transition-base);
+}
+
+.analysis-stat-card:hover {
+  box-shadow: var(--box-shadow-sm);
+  transform: translateY(-2px);
+}
+
+.analysis-stat-card .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.analysis-stat-card .stat-label {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  margin-bottom: 4px;
+}
+
+.analysis-stat-card .stat-change {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background: #fafbfc;
+  border-radius: var(--border-radius-md);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.recommendation-item strong {
+  color: var(--text-color);
+}
+
+/* ===== AI分析报告模块 ===== */
+.ai-report-section {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* AI报告空状态 */
+.ai-report-empty {
+  transition: all var(--transition-base);
+}
+
+.ai-report-empty:hover {
+  background: #F8FAFC !important;
+}
+
+/* AI报告关键发现卡片 */
+.ai-finding-card {
+  transition: all var(--transition-base);
+  cursor: default;
+}
+
+.ai-finding-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* AI报告趋势洞察卡片 */
+.ai-trend-insight {
+  transition: all var(--transition-base);
+}
+
+.ai-trend-insight:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateX(2px);
+}
+
+/* AI报告统计数据 */
+.ai-report-stat {
+  transition: all var(--transition-base);
+}
+
+.ai-report-stat:hover {
+  transform: translateY(-4px);
+}
+
+/* AI报告图表容器 */
+.ai-report-chart-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* AI报告操作按钮 */
+.ai-report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.ai-report-actions .ant-btn {
+  border-radius: 8px;
+  transition: all var(--transition-base);
+}
+
+.ai-report-actions .ant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* AI报告详细弹窗 */
+.ai-report-detail-modal .ant-modal-content {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ai-report-detail-modal .ant-modal-header {
+  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+  border-bottom: 1px solid #E2E8F0;
+  padding: 20px 24px;
+}
+
+.ai-report-detail-modal .ant-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.ai-report-detail-modal .ant-card {
+  border-radius: 12px;
+  transition: all var(--transition-base);
+}
+
+.ai-report-detail-modal .ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 渐变边框效果 */
+.gradient-border {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: linear-gradient(#fff, #fff) padding-box,
+              linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%) border-box;
+}
+
+/* 加载动画 */
+.ai-report-loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.ai-report-loading .anticon {
+  font-size: 48px;
+  color: #0EA5E9;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===== 响应式优化 ===== */
+@media (max-width: 1280px) {
+  .metric-value-main {
+    font-size: 20px;
+  }
+  
+  .ai-metric-mini {
+    padding: 8px;
+  }
+  
+  .ai-metric-value {
+    font-size: 16px;
+  }
+
+  .control-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .control-item label {
+    margin-bottom: 8px;
+  }
+
+  .ai-report-actions {
+    flex-direction: column;
+  }
+
+  .ai-report-actions .ant-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-analysis-modal {
+    width: 100% !important;
+  }
+
+  .analysis-stat-card .stat-value {
+    font-size: 20px;
+  }
+
+  .ai-report-detail-modal {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .ai-report-detail-modal .ant-modal-body {
+    padding: 16px;
+  }
+
+  .ai-report-empty {
+    padding: 40px 20px !important;
+  }
+
+  .ai-report-empty .anticon {
+    font-size: 48px !important;
+  }
+}
+

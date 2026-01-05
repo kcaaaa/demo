@@ -19,6 +19,9 @@ import {
   Radio,
   Input,
   Select,
+  Modal,
+  Form,
+  InputNumber,
 } from 'antd'
 import {
   BulbOutlined,
@@ -96,6 +99,10 @@ const StrategyNew = () => {
   const [simulating, setSimulating] = useState(false)
   const [simulationProgress, setSimulationProgress] = useState(0)
   const [simulationTime, setSimulationTime] = useState('00:00:00')
+  const [isAddStrategyModalVisible, setIsAddStrategyModalVisible] = useState(false)
+  const [addStrategyForm] = Form.useForm()
+  const [isAddTemplateModalVisible, setIsAddTemplateModalVisible] = useState(false)
+  const [addTemplateForm] = Form.useForm()
   const [realTimeMetrics, setRealTimeMetrics] = useState({
     runTime: 145.1,
     avgSimTime: 6.79,
@@ -130,7 +137,7 @@ const StrategyNew = () => {
   })
 
   // 策略推荐数据
-  const recommendedStrategies = [
+  const [recommendedStrategies, setRecommendedStrategies] = useState([
     {
       id: 1,
       icon: '☀️',
@@ -171,10 +178,10 @@ const StrategyNew = () => {
       statusColor: 'green',
       saving: '预计节能22%',
     },
-  ]
+  ])
 
   // 模板管理数据
-  const templates = [
+  const [templates, setTemplates] = useState([
     {
       id: 1,
       title: '工业园区节能模板',
@@ -207,7 +214,7 @@ const StrategyNew = () => {
       usage: 18,
       date: '2024-04-05',
     },
-  ]
+  ])
 
   // 策略组合 - 推荐模块数据
   const combinationRecommendations = [
@@ -501,6 +508,110 @@ const StrategyNew = () => {
     message.info('已重置为默认参数')
   }
 
+  // 打开新增策略弹窗
+  const handleOpenAddStrategyModal = () => {
+    addStrategyForm.resetFields()
+    setIsAddStrategyModalVisible(true)
+  }
+
+  // 关闭新增策略弹窗
+  const handleCloseAddStrategyModal = () => {
+    setIsAddStrategyModalVisible(false)
+    addStrategyForm.resetFields()
+  }
+
+  // 保存新增策略
+  const handleSaveNewStrategy = async () => {
+    try {
+      const values = await addStrategyForm.validateFields()
+      
+      // 模拟保存操作
+      await sleep(500)
+      
+      // 图标映射
+      const iconMap: { [key: string]: string } = {
+        '照明': '☀️',
+        '空调': '❄️',
+        '电梯': '🏢',
+        '光伏': '☀️',
+        '储能': '⚡',
+        '供电': '🔌',
+        '其他': '⚙️',
+      }
+      
+      // 颜色映射
+      const colorMap: { [key: string]: string } = {
+        '照明': '#faad14',
+        '空调': '#1890ff',
+        '电梯': '#52c41a',
+        '光伏': '#ff4d4f',
+        '储能': '#722ed1',
+        '供电': '#13c2c2',
+        '其他': '#8c8c8c',
+      }
+      
+      // 创建新策略对象
+      const newStrategy = {
+        id: recommendedStrategies.length + 1,
+        icon: iconMap[values.category] || '⚙️',
+        color: colorMap[values.category] || '#8c8c8c',
+        title: values.title,
+        desc: values.desc,
+        status: values.status,
+        statusColor: values.status === '已启用' ? 'green' : 'default',
+        saving: `预计节能${values.savingRate}%`,
+      }
+      
+      // 添加到策略列表
+      setRecommendedStrategies([...recommendedStrategies, newStrategy])
+      
+      message.success('新增策略成功！')
+      handleCloseAddStrategyModal()
+    } catch (error) {
+      message.error('请填写完整的策略信息')
+    }
+  }
+
+  // 打开新增模板弹窗
+  const handleOpenAddTemplateModal = () => {
+    addTemplateForm.resetFields()
+    setIsAddTemplateModalVisible(true)
+  }
+
+  // 关闭新增模板弹窗
+  const handleCloseAddTemplateModal = () => {
+    setIsAddTemplateModalVisible(false)
+    addTemplateForm.resetFields()
+  }
+
+  // 保存新增模板
+  const handleSaveNewTemplate = async () => {
+    try {
+      const values = await addTemplateForm.validateFields()
+      
+      // 模拟保存操作
+      await sleep(500)
+      
+      // 创建新模板对象
+      const newTemplate = {
+        id: templates.length + 1,
+        title: values.title,
+        desc: values.desc,
+        strategies: values.strategies || 0,
+        usage: 0, // 新模板使用次数为0
+        date: new Date().toISOString().split('T')[0], // 当前日期，格式：YYYY-MM-DD
+      }
+      
+      // 添加到模板列表
+      setTemplates([...templates, newTemplate])
+      
+      message.success('新增模板成功！')
+      handleCloseAddTemplateModal()
+    } catch (error) {
+      message.error('请填写完整的模板信息')
+    }
+  }
+
   // 历史记录表格列
   const historyColumns = [
     { title: '记录ID', dataIndex: 'id', key: 'id', width: 80 },
@@ -629,7 +740,7 @@ const StrategyNew = () => {
             <div className="tab-content-header">
               <h3>策略推荐</h3>
               <p>基于AI智能分析推荐的节能策略</p>
-              <Button type="primary" icon={<PlusOutlined />} style={{ marginTop: 12 }}>
+              <Button type="primary" icon={<PlusOutlined />} style={{ marginTop: 12 }} onClick={handleOpenAddStrategyModal}>
                 新增策略
               </Button>
             </div>
@@ -664,7 +775,7 @@ const StrategyNew = () => {
             <div className="tab-content-header">
               <h3>模板管理</h3>
               <p>管理和使用节能策略模板</p>
-              <Button type="primary" icon={<PlusOutlined />} style={{ marginTop: 12 }}>
+              <Button type="primary" icon={<PlusOutlined />} style={{ marginTop: 12 }} onClick={handleOpenAddTemplateModal}>
                 新增模板
               </Button>
             </div>
@@ -1154,6 +1265,167 @@ const StrategyNew = () => {
           </TabPane>
         </Tabs>
       </Card>
+
+      {/* 新增策略弹窗 */}
+      <Modal
+        title="新增节能策略"
+        open={isAddStrategyModalVisible}
+        onOk={handleSaveNewStrategy}
+        onCancel={handleCloseAddStrategyModal}
+        width={600}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form
+          form={addStrategyForm}
+          layout="vertical"
+          style={{ marginTop: 24 }}
+        >
+          <Form.Item
+            name="title"
+            label="策略名称"
+            rules={[{ required: true, message: '请输入策略名称' }]}
+          >
+            <Input placeholder="请输入策略名称，如：LED照明调控方案" />
+          </Form.Item>
+
+          <Form.Item
+            name="category"
+            label="策略分类"
+            rules={[{ required: true, message: '请选择策略分类' }]}
+          >
+            <Select placeholder="请选择策略分类">
+              <Select.Option value="照明">照明系统</Select.Option>
+              <Select.Option value="空调">空调系统</Select.Option>
+              <Select.Option value="电梯">电梯系统</Select.Option>
+              <Select.Option value="光伏">光伏发电</Select.Option>
+              <Select.Option value="储能">储能系统</Select.Option>
+              <Select.Option value="供电">供电系统</Select.Option>
+              <Select.Option value="其他">其他</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="desc"
+            label="策略描述"
+            rules={[{ required: true, message: '请输入策略描述' }]}
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="请详细描述该策略的作用和实施方式"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="savingRate"
+            label="预计节能率 (%)"
+            rules={[{ required: true, message: '请输入预计节能率' }]}
+            initialValue={5}
+          >
+            <InputNumber
+              min={0}
+              max={100}
+              precision={1}
+              style={{ width: '100%' }}
+              placeholder="请输入预计节能率"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="status"
+            label="策略状态"
+            rules={[{ required: true, message: '请选择策略状态' }]}
+            initialValue="未启用"
+          >
+            <Radio.Group>
+              <Radio value="已启用">已启用</Radio>
+              <Radio value="未启用">未启用</Radio>
+            </Radio.Group>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 新增模板弹窗 */}
+      <Modal
+        title="新增策略模板"
+        open={isAddTemplateModalVisible}
+        onOk={handleSaveNewTemplate}
+        onCancel={handleCloseAddTemplateModal}
+        width={600}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form
+          form={addTemplateForm}
+          layout="vertical"
+          style={{ marginTop: 24 }}
+        >
+          <Form.Item
+            name="title"
+            label="模板名称"
+            rules={[{ required: true, message: '请输入模板名称' }]}
+          >
+            <Input placeholder="请输入模板名称，如：工业园区节能模板" />
+          </Form.Item>
+
+          <Form.Item
+            name="desc"
+            label="模板描述"
+            rules={[{ required: true, message: '请输入模板描述' }]}
+          >
+            <Input.TextArea 
+              rows={3} 
+              placeholder="请详细描述该模板的适用场景和包含的策略内容"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="strategies"
+            label="包含策略数量"
+            rules={[{ required: true, message: '请输入包含的策略数量' }]}
+            initialValue={1}
+            extra="请输入该模板包含的节能策略数量"
+          >
+            <InputNumber
+              min={1}
+              max={100}
+              style={{ width: '100%' }}
+              placeholder="请输入策略数量"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="applicableScene"
+            label="适用场景"
+            rules={[{ required: false }]}
+          >
+            <Select 
+              mode="multiple" 
+              placeholder="请选择适用场景（可多选）"
+              allowClear
+            >
+              <Select.Option value="工业园区">工业园区</Select.Option>
+              <Select.Option value="办公大楼">办公大楼</Select.Option>
+              <Select.Option value="商业综合体">商业综合体</Select.Option>
+              <Select.Option value="医疗机构">医疗机构</Select.Option>
+              <Select.Option value="教育机构">教育机构</Select.Option>
+              <Select.Option value="交通枢纽">交通枢纽</Select.Option>
+              <Select.Option value="酒店住宿">酒店住宿</Select.Option>
+              <Select.Option value="其他">其他</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="remarks"
+            label="备注说明"
+          >
+            <Input.TextArea 
+              rows={2} 
+              placeholder="其他需要说明的内容（可选）"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

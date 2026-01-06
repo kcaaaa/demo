@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
 import LoginPage from './pages/auth/Login'
+import StationSelectPage from './pages/station-select/StationSelectPage'
 import HomePage from './pages/dashboard/HomePage'
 import SingleStationPage from './pages/analysis/SingleStationNew'
 import EnergyRatioPage from './pages/analysis/EnergyRatioNew'
@@ -21,6 +22,14 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/station-select',
+    element: (
+      <ProtectedRoute>
+        <StationSelectPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/',

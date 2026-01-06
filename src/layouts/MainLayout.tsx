@@ -1,13 +1,15 @@
-import { Layout, Menu, Dropdown, Avatar, Space, Switch, Typography } from 'antd'
+import { Layout, Menu, Dropdown, Avatar, Space, Switch, Typography, Button } from 'antd'
 import {
   LogoutOutlined,
   MoonOutlined,
   SunOutlined,
   UserOutlined,
   DownOutlined,
+  SwapOutlined,
+  EnvironmentOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import useAuthStore from '../stores/auth'
 import useUIStore from '../stores/ui'
 import { menus } from '../mock/menu'
@@ -21,6 +23,26 @@ const MainLayout = () => {
   const location = useLocation()
   const { current, logout } = useAuthStore()
   const { theme, collapsed, setTheme, toggleCollapse } = useUIStore()
+  const [stationInfo, setStationInfo] = useState<{
+    stationName: string
+    projectName: string
+  } | null>(null)
+
+  // 读取当前选择的站点信息
+  useEffect(() => {
+    const info = localStorage.getItem('selectedStation')
+    if (info) {
+      try {
+        const parsed = JSON.parse(info)
+        setStationInfo({
+          stationName: parsed.stationName,
+          projectName: parsed.projectName,
+        })
+      } catch (e) {
+        console.error('Failed to parse station info', e)
+      }
+    }
+  }, [])
 
   const filterMenu = (list = menus): typeof menus =>
     list
@@ -71,30 +93,61 @@ const MainLayout = () => {
                 onChange={(checked) => setTheme(checked ? 'dark' : 'light')}
               />
             </Space>
+            {stationInfo && (
+              <Space 
+                style={{ 
+                  marginLeft: '24px',
+                  padding: '6px 16px',
+                  background: '#f5f7fa',
+                  borderRadius: '8px',
+                }}
+              >
+                <EnvironmentOutlined style={{ color: '#1890ff' }} />
+                <Text style={{ fontSize: 14 }}>
+                  <Text type="secondary">{stationInfo.projectName}</Text>
+                  <Text style={{ margin: '0 8px', color: '#d9d9d9' }}>|</Text>
+                  <Text strong>{stationInfo.stationName}</Text>
+                </Text>
+              </Space>
+            )}
           </Space>
-          <Dropdown
-            menu={{
-              items: [
-                { key: 'profile', label: '个人信息', icon: <UserOutlined /> },
-                { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true },
-              ],
-              onClick: ({ key }) => {
-                if (key === 'logout') {
-                  logout()
-                  navigate('/login')
-                }
-              },
-            }}
-          >
-            <Space className="user-box">
-              <Avatar size={32} icon={<UserOutlined />} />
-              <div className="user-meta">
-                <Text strong>{current?.nickname}</Text>
-                <Text type="secondary">{current?.role}</Text>
-              </div>
-              <DownOutlined />
-            </Space>
-          </Dropdown>
+          <Space align="center" size={16}>
+            <Button
+              type="default"
+              icon={<SwapOutlined />}
+              onClick={() => navigate('/station-select')}
+              style={{
+                borderRadius: '8px',
+                height: '36px',
+                padding: '0 16px',
+              }}
+            >
+              切换项目
+            </Button>
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'profile', label: '个人信息', icon: <UserOutlined /> },
+                  { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true },
+                ],
+                onClick: ({ key }) => {
+                  if (key === 'logout') {
+                    logout()
+                    navigate('/login')
+                  }
+                },
+              }}
+            >
+              <Space className="user-box">
+                <Avatar size={32} icon={<UserOutlined />} />
+                <div className="user-meta">
+                  <Text strong>{current?.nickname}</Text>
+                  <Text type="secondary">{current?.role}</Text>
+                </div>
+                <DownOutlined />
+              </Space>
+            </Dropdown>
+          </Space>
         </Header>
         <Content className="layout-content">
           <Outlet />

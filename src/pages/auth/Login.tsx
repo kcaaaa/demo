@@ -12,7 +12,7 @@ const LoginPage = () => {
   useEffect(() => {
     hydrate()
     if (isAuthed()) {
-      navigate('/')
+      navigate('/station-select')
     }
   }, [])
 
@@ -20,8 +20,8 @@ const LoginPage = () => {
     const ok = await login(values.username, values.password)
     if (ok) {
       message.success('登录成功')
-      const redirect = (location.state as any)?.from?.pathname || '/'
-      navigate(redirect, { replace: true })
+      // 登录成功后跳转到站点选择页
+      navigate('/station-select', { replace: true })
     } else {
       message.error('用户名或密码错误，或账号已停用')
     }

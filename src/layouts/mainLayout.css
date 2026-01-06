@@ -1,0 +1,46 @@
+.logo-area {
+  display: flex;
+  align-items: center;
+  height: 64px;
+  gap: 12px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.logo-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1890ff, #722ed1);
+  box-shadow: 0 6px 12px rgba(24, 144, 255, 0.25);
+}
+
+.logo-text .title {
+  font-weight: 700;
+  color: #1d2129;
+}
+
+.logo-text .subtitle {
+  color: #86909c;
+  font-size: 12px;
+}
+
+.header-bar {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.user-box {
+  cursor: pointer;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+

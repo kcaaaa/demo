@@ -1,37 +1,12 @@
-<<<<<<< HEAD
 # Dependencies
 node_modules/
 package-lock.json
 
 # Build outputs
 dist/
+dist-ssr/
 build/
-*.log
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Test coverage
-coverage/
-
-# Temporary files
-*.tmp
-.cache/
-
-=======
 # Logs
 logs
 *.log
@@ -41,19 +16,32 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# IDE
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
+*.swp
+*.swo
+*~
 *.suo
 *.ntvs*
-*.njsproj
+*.njsproj*
 *.sln
 *.sw?
->>>>>>> 86604ae02bc73ede69dca019b86db2e7bef2e41a
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.local
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+.cache/

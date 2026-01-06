@@ -32,17 +32,13 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 安装依赖
-        run: |
-          cd app
-          npm ci
+        run: npm ci
 
       - name: 构建项目
-        run: |
-          cd app
-          npm run build
+        run: npm run build
 
       - name: 配置 GitHub Pages
         uses: actions/configure-pages@v4
@@ -50,7 +46,7 @@ jobs:
       - name: 上传构建产物
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'app/dist'
+          path: 'dist'
 
   # 部署任务
   deploy:
